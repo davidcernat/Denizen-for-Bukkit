@@ -1,11 +1,11 @@
 package net.aufdemrand.denizen.objects.properties.entity;
 
-import net.aufdemrand.denizen.objects.Element;
-import net.aufdemrand.denizen.objects.Mechanism;
 import net.aufdemrand.denizen.objects.dEntity;
-import net.aufdemrand.denizen.objects.dObject;
-import net.aufdemrand.denizen.objects.properties.Property;
-import net.aufdemrand.denizen.tags.Attribute;
+import net.aufdemrand.denizencore.objects.Element;
+import net.aufdemrand.denizencore.objects.Mechanism;
+import net.aufdemrand.denizencore.objects.dObject;
+import net.aufdemrand.denizencore.objects.properties.Property;
+import net.aufdemrand.denizencore.tags.Attribute;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Villager;
 
@@ -15,7 +15,7 @@ public class EntityProfession implements Property {
     public static boolean describes(dObject entity) {
         if (!(entity instanceof dEntity)) return false;
         // Check if the entity is a Villager, the only EntityType that can be a Professional
-        return ((dEntity) entity).getEntityType() == EntityType.VILLAGER;
+        return ((dEntity) entity).getBukkitEntityType() == EntityType.VILLAGER;
     }
 
     public static EntityProfession getFrom(dObject entity) {

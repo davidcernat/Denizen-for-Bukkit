@@ -6,12 +6,13 @@ import net.aufdemrand.denizencore.utilities.CoreUtilities;
 import net.citizensnpcs.api.persistence.Persist;
 import net.citizensnpcs.api.trait.Trait;
 import net.citizensnpcs.util.PlayerAnimation;
-import net.minecraft.server.v1_8_R1.*;
+import net.minecraft.server.v1_8_R3.*;
 import org.bukkit.Location;
-import org.bukkit.craftbukkit.v1_8_R1.CraftWorld;
-import org.bukkit.craftbukkit.v1_8_R1.entity.CraftPlayer;
+import org.bukkit.craftbukkit.v1_8_R3.CraftWorld;
+import org.bukkit.craftbukkit.v1_8_R3.entity.CraftPlayer;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Projectile;
+import org.bukkit.projectiles.ProjectileSource;
 import org.bukkit.util.Vector;
 
 import java.util.ArrayList;
@@ -32,20 +33,20 @@ public class FishingTrait extends Trait {
             new PossibleFishingResult(new ItemStack(Items.DYE, 10, 0), 1),
             new PossibleFishingResult(new ItemStack(Blocks.TRIPWIRE_HOOK), 10),
             new PossibleFishingResult(new ItemStack(Items.ROTTEN_FLESH), 10)});
-    private static final List treasureResults = Arrays.asList(new PossibleFishingResult[] {
+    private static final List treasureResults = Arrays.asList(new PossibleFishingResult[]{
             new PossibleFishingResult(new ItemStack(Blocks.WATERLILY), 1),
             new PossibleFishingResult(new ItemStack(Items.NAME_TAG), 1),
             new PossibleFishingResult(new ItemStack(Items.SADDLE), 1),
             (new PossibleFishingResult(new ItemStack(Items.BOW), 1)).a(0.25F).a(),
             (new PossibleFishingResult(new ItemStack(Items.FISHING_ROD), 1)).a(0.25F).a(),
             (new PossibleFishingResult(new ItemStack(Items.BOOK), 1)).a()});
-    private static final List fishResults = Arrays.asList(new PossibleFishingResult[] {
-            new PossibleFishingResult(new ItemStack(Items.FISH, 1, EnumFish.COD.a()), 60),
-            new PossibleFishingResult(new ItemStack(Items.FISH, 1, EnumFish.SALMON.a()), 25),
-            new PossibleFishingResult(new ItemStack(Items.FISH, 1, EnumFish.CLOWNFISH.a()), 2),
-            new PossibleFishingResult(new ItemStack(Items.FISH, 1, EnumFish.PUFFERFISH.a()), 13)});
+    private static final List fishResults = Arrays.asList(new PossibleFishingResult[]{
+            new PossibleFishingResult(new ItemStack(Items.FISH, 1, ItemFish.EnumFish.COD.a()), 60),
+            new PossibleFishingResult(new ItemStack(Items.FISH, 1, ItemFish.EnumFish.SALMON.a()), 25),
+            new PossibleFishingResult(new ItemStack(Items.FISH, 1, ItemFish.EnumFish.CLOWNFISH.a()), 2),
+            new PossibleFishingResult(new ItemStack(Items.FISH, 1, ItemFish.EnumFish.PUFFERFISH.a()), 13)});
 
-    public static enum CatchType { NONE, DEFAULT, JUNK, TREASURE, FISH }
+    public static enum CatchType {NONE, DEFAULT, JUNK, TREASURE, FISH}
 
     @Persist("fishing")
     private boolean fishing = false;
@@ -72,23 +73,24 @@ public class FishingTrait extends Trait {
     public void run() {
         reelCount++;
         castCount++;
-        if(fish != null) {
-            if (fish.getBukkitEntity().getLocation().distance(npc.getBukkitEntity().getLocation()) < 3) {
+        if (fish != null) {
+            if (fish.getBukkitEntity().getLocation().distance(npc.getEntity().getLocation()) < 3) {
                 try {
                     fish.getBukkitEntity().remove();
-                } catch (Exception e) {
+                }
+                catch (Exception e) {
                 }
             }
         }
         if (!fishing) return;
 
-        if(reelCount == 400) {
+        if (reelCount == 400) {
             reel();
             reelCount = 0;
             castCount = 325;
         }
 
-        if(castCount == 400) {
+        if (castCount == 400) {
             cast();
             castCount = 0;
         }
@@ -96,8 +98,8 @@ public class FishingTrait extends Trait {
 
     @Override
     public void onSpawn() {
-        eh = ((CraftPlayer) npc.getBukkitEntity()).getHandle();
-        nmsworld = ((CraftWorld) npc.getBukkitEntity().getWorld()).getHandle();
+        eh = ((CraftPlayer) npc.getEntity()).getHandle();
+        nmsworld = ((CraftWorld) npc.getEntity().getWorld()).getHandle();
     }
 
     // <--[action]
@@ -110,9 +112,10 @@ public class FishingTrait extends Trait {
     // None
     //
     // -->
+
     /**
      * Makes the NPC fish at the specified location
-     *
+     * <p/>
      * TODO Reimplement variance, so each cast doesn't land in the exact same spot.
      *
      * @param location the location to fish at
@@ -134,6 +137,7 @@ public class FishingTrait extends Trait {
     // None
     //
     // -->
+
     /**
      * Makes the stop fishing.
      */
@@ -148,12 +152,12 @@ public class FishingTrait extends Trait {
 
     /**
      * Makes the NPC fish in the nearest water
-     *
+     * <p/>
      * TODO Needs logic for handling that.
      */
     public void startFishing() {
         fishing = true;
-        fishingLocation = npc.getBukkitEntity().getLocation();
+        fishingLocation = npc.getEntity().getLocation();
     }
 
     // <--[action]
@@ -169,7 +173,7 @@ public class FishingTrait extends Trait {
     private void cast() {
         DenizenAPI.getDenizenNPC(npc).action("cast fishing rod", null);
 
-        if(fishingLocation == null) {
+        if (fishingLocation == null) {
             dB.echoError("Fishing location not found!");
             return;
         }
@@ -181,8 +185,8 @@ public class FishingTrait extends Trait {
 
         fishHook = new EntityFishingHook(nmsworld, eh);
         nmsworld.addEntity(fishHook);
-        from = npc.getBukkitEntity().getLocation();
-        from = from.add(0,.33,0);
+        from = npc.getEntity().getLocation();
+        from = from.add(0, .33, 0);
         to = fishingLocation;
 
         Vector test = to.clone().subtract(from).toVector();
@@ -204,14 +208,14 @@ public class FishingTrait extends Trait {
         victor = normalizeVector(victor);
         v = v + (.5 * Math.pow(hangtime, 2));
         //Random rand = new Random(1234);
-        v = v+ (CoreUtilities.getRandom().nextDouble() - .8)/2;
+        v = v + (CoreUtilities.getRandom().nextDouble() - .8) / 2;
         victor = victor.multiply(v / 20.0);
 
         Projectile theHook = (Projectile) fishHook.getBukkitEntity();
-        theHook.setShooter(npc.getBukkitEntity());
+        theHook.setShooter((ProjectileSource) npc.getEntity());
         theHook.setVelocity(victor);
 
-        PlayerAnimation.ARM_SWING.play((Player) npc.getBukkitEntity());
+        PlayerAnimation.ARM_SWING.play((Player) npc.getEntity());
     }
 
     // <--[action]
@@ -227,20 +231,24 @@ public class FishingTrait extends Trait {
     private void reel() {
         DenizenAPI.getDenizenNPC(npc).action("reel in fishing rod", null);
 
-        int chance = (int)(Math.random()*100);
+        int chance = (int) (Math.random() * 100);
 
-        try{
+        try {
             fishHook.getBukkitEntity().remove();
-        } catch(Exception e){}
+        }
+        catch (Exception e) {
+        }
 
         if (catchPercent > chance && fishHook != null && catchType != CatchType.NONE) {
-            try{
+            try {
                 fish.getBukkitEntity().remove();
-            } catch(Exception e) {}
+            }
+            catch (Exception e) {
+            }
             fish = new EntityItem(nmsworld, fishHook.locX, fishHook.locY, fishHook.locZ, getFishingResult());
-            double d5 = npc.getBukkitEntity().getLocation().getX() - fishHook.locX;
-            double d6 = npc.getBukkitEntity().getLocation().getY() - fishHook.locY;
-            double d7 = npc.getBukkitEntity().getLocation().getZ() - fishHook.locZ;
+            double d5 = npc.getEntity().getLocation().getX() - fishHook.locX;
+            double d6 = npc.getEntity().getLocation().getY() - fishHook.locY;
+            double d7 = npc.getEntity().getLocation().getZ() - fishHook.locZ;
             double d8 = (double) MathHelper.sqrt(d5 * d5 + d6 * d6 + d7 * d7);
             double d9 = 0.1D;
 
@@ -251,7 +259,7 @@ public class FishingTrait extends Trait {
             DenizenAPI.getDenizenNPC(npc).action("catch fish", null);
         }
 
-        PlayerAnimation.ARM_SWING.play((Player) npc.getBukkitEntity());
+        PlayerAnimation.ARM_SWING.play((Player) npc.getEntity());
     }
 
     public ItemStack getFishingResult() {
@@ -323,33 +331,33 @@ public class FishingTrait extends Trait {
         super("fishing");
     }
 
-    public static Double launchAngle(Location from, Location to, double v, double elev, double g){
+    public static Double launchAngle(Location from, Location to, double v, double elev, double g) {
         Vector victor = from.clone().subtract(to).toVector();
-        Double dist =  Math.sqrt(Math.pow(victor.getX(), 2) + Math.pow(victor.getZ(), 2));
-        double v2 = Math.pow(v,2);
-        double v4 = Math.pow(v,4);
-        double derp =  g*(g*Math.pow(dist,2)+2*elev*v2);
+        Double dist = Math.sqrt(Math.pow(victor.getX(), 2) + Math.pow(victor.getZ(), 2));
+        double v2 = Math.pow(v, 2);
+        double v4 = Math.pow(v, 4);
+        double derp = g * (g * Math.pow(dist, 2) + 2 * elev * v2);
 
-        if(v4 < derp)
+        if (v4 < derp)
             return null;
         else
-            return Math.atan( (v2-   Math.sqrt(v4 - derp))/(g*dist));
+            return Math.atan((v2 - Math.sqrt(v4 - derp)) / (g * dist));
     }
 
-    public static double hangtime(double launchAngle, double v, double elev, double g){
+    public static double hangtime(double launchAngle, double v, double elev, double g) {
         double a = v * Math.sin(launchAngle);
-        double b = -2*g*elev;
+        double b = -2 * g * elev;
 
-        if(Math.pow(a, 2) + b < 0)
+        if (Math.pow(a, 2) + b < 0)
             return 0;
 
-        return (a + Math.sqrt(Math.pow(a, 2) + b))  /  g;
+        return (a + Math.sqrt(Math.pow(a, 2) + b)) / g;
     }
 
-    public static Vector normalizeVector(Vector victor){
-        double  mag = Math.sqrt(Math.pow(victor.getX(), 2) + Math.pow(victor.getY(), 2)  + Math.pow(victor.getZ(), 2));
-        if (mag !=0)
-            return victor.multiply(1/mag);
+    public static Vector normalizeVector(Vector victor) {
+        double mag = Math.sqrt(Math.pow(victor.getX(), 2) + Math.pow(victor.getY(), 2) + Math.pow(victor.getZ(), 2));
+        if (mag != 0)
+            return victor.multiply(1 / mag);
         return victor.multiply(0);
     }
 

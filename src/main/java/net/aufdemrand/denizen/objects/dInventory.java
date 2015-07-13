@@ -1,28 +1,30 @@
 package net.aufdemrand.denizen.objects;
 
 import net.aufdemrand.denizen.BukkitScriptEntryData;
-import net.aufdemrand.denizen.objects.aH.Argument;
-import net.aufdemrand.denizen.objects.aH.PrimitiveType;
-import net.aufdemrand.denizen.objects.notable.Notable;
 import net.aufdemrand.denizen.objects.notable.NotableManager;
-import net.aufdemrand.denizen.objects.notable.Note;
-import net.aufdemrand.denizen.objects.properties.Property;
-import net.aufdemrand.denizen.objects.properties.PropertyParser;
-import net.aufdemrand.denizen.scripts.ScriptRegistry;
 import net.aufdemrand.denizen.scripts.containers.core.InventoryScriptContainer;
 import net.aufdemrand.denizen.scripts.containers.core.InventoryScriptHelper;
-import net.aufdemrand.denizen.tags.Attribute;
+import net.aufdemrand.denizen.tags.BukkitTagContext;
 import net.aufdemrand.denizen.utilities.Utilities;
 import net.aufdemrand.denizen.utilities.debugging.dB;
+import net.aufdemrand.denizen.utilities.depends.Depends;
 import net.aufdemrand.denizen.utilities.nbt.ImprovedOfflinePlayer;
+import net.aufdemrand.denizencore.objects.*;
+import net.aufdemrand.denizencore.objects.aH.Argument;
+import net.aufdemrand.denizencore.objects.aH.PrimitiveType;
+import net.aufdemrand.denizencore.objects.notable.Notable;
+import net.aufdemrand.denizencore.objects.notable.Note;
+import net.aufdemrand.denizencore.objects.properties.Property;
+import net.aufdemrand.denizencore.objects.properties.PropertyParser;
+import net.aufdemrand.denizencore.scripts.ScriptRegistry;
+import net.aufdemrand.denizencore.tags.Attribute;
+import net.aufdemrand.denizencore.tags.TagContext;
 import net.aufdemrand.denizencore.utilities.CoreUtilities;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
-import org.bukkit.block.BrewingStand;
-import org.bukkit.block.Chest;
+import org.bukkit.block.BlockState;
 import org.bukkit.block.DoubleChest;
-import org.bukkit.block.Furnace;
-import org.bukkit.craftbukkit.v1_8_R1.inventory.CraftInventory;
+import org.bukkit.craftbukkit.v1_8_R3.inventory.CraftInventory;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryType;
@@ -51,6 +53,11 @@ public class dInventory implements dObject, Notable, Adjustable {
             if (((CraftInventory) inv.getValue()).getInventory().equals(((CraftInventory) inventory).getInventory()))
                 return new dInventory(new ImprovedOfflinePlayer(inv.getKey()));
         }
+        // Iterate through offline player enderchests
+        for (Map.Entry<UUID, Inventory> inv : InventoryScriptHelper.offlineEnderChests.entrySet()) {
+            if (((CraftInventory) inv.getValue()).getInventory().equals(((CraftInventory) inventory).getInventory()))
+                return new dInventory(new ImprovedOfflinePlayer(inv.getKey()), true);
+        }
 
         return new dInventory(inventory);
     }
@@ -71,7 +78,7 @@ public class dInventory implements dObject, Notable, Adjustable {
     public final static int maxSlots = 54;
 
     // All of the inventory id types we use
-    public final static String[] idTypes = { "npc", "player", "enderchest", "workbench", "entity", "location", "generic" };
+    public final static String[] idTypes = {"npc", "player", "enderchest", "workbench", "entity", "location", "generic"};
 
 
     /////////////////////
@@ -84,7 +91,7 @@ public class dInventory implements dObject, Notable, Adjustable {
 
     @Note("Inventories")
     public String getSaveObject() {
-       return "in@" + idType + PropertyParser.getPropertiesString(this);
+        return "in@" + idType + PropertyParser.getPropertiesString(this);
     }
 
     public void makeUnique(String id) {
@@ -124,21 +131,27 @@ public class dInventory implements dObject, Notable, Adjustable {
     //    OBJECT FETCHER
     ////////////////
 
-    @Fetchable("in")
+
     public static dInventory valueOf(String string) {
-        return valueOf(string, null, null);
+        return valueOf(string, null);
+    }
+
+    @Fetchable("in")
+    public static dInventory valueOf(String string, TagContext context) {
+        if (context == null) {
+            return valueOf(string, null, null);
+        }
+        else {
+            return valueOf(string, ((BukkitTagContext) context).player, ((BukkitTagContext) context).npc);
+        }
     }
 
     /**
-     *
      * Gets a dInventory from a string format.
      *
-     * @param string
-     *          The inventory in string form. (in@player[playerName], in@scriptName, etc.)
-     * @return
-     *          The dInventory value. If the string is incorrectly formatted or
-     *          the specified inventory is invalid, this is null.
-     *
+     * @param string The inventory in string form. (in@player[playerName], in@scriptName, etc.)
+     * @return The dInventory value. If the string is incorrectly formatted or
+     * the specified inventory is invalid, this is null.
      */
     public static dInventory valueOf(String string, dPlayer player, dNPC npc) {
 
@@ -148,7 +161,8 @@ public class dInventory implements dObject, Notable, Adjustable {
         // Handle objects with properties through the object fetcher
         Matcher m = ObjectFetcher.DESCRIBED_PATTERN.matcher(string);
         if (m.matches()) {
-            return ObjectFetcher.getObjectFrom(dInventory.class, string, player, npc);
+            return ObjectFetcher.getObjectFrom(dInventory.class, string,
+                    new BukkitTagContext(player, npc, false, null, false, null));
         }
 
         // Match in@scriptName for Inventory Scripts, as well as in@notableName
@@ -162,8 +176,9 @@ public class dInventory implements dObject, Notable, Adjustable {
             if (NotableManager.isSaved(m.group(2)) && NotableManager.isType(m.group(2), dInventory.class))
                 return (dInventory) NotableManager.getSavedObject(m.group(2));
 
-            for (String idType : idTypes) if (m.group(2).equalsIgnoreCase(idType))
-                return new dInventory(m.group(2));
+            for (String idType : idTypes)
+                if (m.group(2).equalsIgnoreCase(idType))
+                    return new dInventory(m.group(2));
         }
 
         m = inventory_by_type.matcher(string);
@@ -231,9 +246,8 @@ public class dInventory implements dObject, Notable, Adjustable {
     /**
      * Determine whether a string is a valid inventory.
      *
-     * @param arg  the arg string
-     * @return  true if matched, otherwise false
-     *
+     * @param arg the arg string
+     * @return true if matched, otherwise false
      */
     public static boolean matches(String arg) {
 
@@ -281,7 +295,7 @@ public class dInventory implements dObject, Notable, Adjustable {
     }
 
     public dInventory(int size, String title) {
-        if (size <= 0 || size%9 != 0) {
+        if (size <= 0 || size % 9 != 0) {
             dB.echoError("InventorySize must be multiple of 9, and greater than 0.");
             return;
         }
@@ -322,9 +336,9 @@ public class dInventory implements dObject, Notable, Adjustable {
      * Changes the inventory to a new inventory, possibly of a different
      * type, size, and with different contents.
      * NOTE: SHOULD ONLY BE USED IN CASES WHERE THERE
-     *       ARE NO OTHER OPTIONS.
+     * ARE NO OTHER OPTIONS.
      *
-     * @param inventory  The new inventory
+     * @param inventory The new inventory
      */
     public void setInventory(Inventory inventory) {
         this.inventory = inventory;
@@ -414,7 +428,7 @@ public class dInventory implements dObject, Notable, Adjustable {
     public void setSize(int size) {
         if (!getIdType().equals("generic"))
             return;
-        else if (size <= 0 || size%9 != 0) {
+        else if (size <= 0 || size % 9 != 0) {
             dB.echoError("InventorySize must be multiple of 9, and greater than 0.");
             return;
         }
@@ -470,7 +484,8 @@ public class dInventory implements dObject, Notable, Adjustable {
                 idType = "location";
                 try {
                     idHolder = getLocation(holder).identify();
-                } catch (NullPointerException e) {
+                }
+                catch (NullPointerException e) {
                     idHolder = "null";
                 }
                 return;
@@ -479,6 +494,15 @@ public class dInventory implements dObject, Notable, Adjustable {
         else if (getIdType().equals("player")) {
             // Iterate through offline player inventories
             for (Map.Entry<UUID, PlayerInventory> inv : InventoryScriptHelper.offlineInventories.entrySet()) {
+                if (((CraftInventory) inv.getValue()).getInventory().equals(((CraftInventory) inventory).getInventory())) {
+                    idHolder = new dPlayer(inv.getKey()).identify();
+                    return;
+                }
+            }
+        }
+        else if (getIdType().equals("enderchest")) {
+            // Iterate through offline player enderchests
+            for (Map.Entry<UUID, Inventory> inv : InventoryScriptHelper.offlineEnderChests.entrySet()) {
                 if (((CraftInventory) inv.getValue()).getInventory().equals(((CraftInventory) inventory).getInventory())) {
                     idHolder = new dPlayer(inv.getKey()).identify();
                     return;
@@ -516,8 +540,7 @@ public class dInventory implements dObject, Notable, Adjustable {
      * Return the dLocation of this inventory's
      * holder
      *
-     * @return  The holder's dLocation
-     *
+     * @return The holder's dLocation
      */
 
     public dLocation getLocation() {
@@ -526,17 +549,11 @@ public class dInventory implements dObject, Notable, Adjustable {
 
     public dLocation getLocation(InventoryHolder holder) {
         if (inventory != null && holder != null) {
-            if (holder instanceof Chest) {
-                return new dLocation(((Chest) holder).getLocation());
+            if (holder instanceof BlockState) {
+                return new dLocation(((BlockState) holder).getLocation());
             }
             else if (holder instanceof DoubleChest) {
                 return new dLocation(((DoubleChest) holder).getLocation());
-            }
-            else if (holder instanceof BrewingStand) {
-                return new dLocation(((BrewingStand) holder).getLocation());
-            }
-            else if (holder instanceof Furnace) {
-                return new dLocation(((Furnace) holder).getLocation());
             }
             else if (holder instanceof Entity) {
                 return new dLocation(((Entity) holder).getLocation());
@@ -593,7 +610,7 @@ public class dInventory implements dObject, Notable, Adjustable {
     public void setContents(dList list) {
         int size;
         if (inventory == null) {
-            size = (int) Math.ceil(list.size() / 9)*9;
+            size = (int) Math.ceil(list.size() / 9) * 9;
             if (size == 0) size = 9;
             inventory = Bukkit.getServer().createInventory(null, size);
             loadIdentifiers();
@@ -609,9 +626,12 @@ public class dInventory implements dObject, Notable, Adjustable {
         final ItemStack air = new ItemStack(Material.AIR);
         while (filled < size) {
             contents[filled] = air;
-            filled ++;
+            filled++;
         }
         inventory.setContents(contents);
+        if (dNPC.matches(idHolder)) { // TODO: Directly store holder
+            dNPC.valueOf(idHolder).getInventoryTrait().setContents(contents);
+        }
     }
 
     public boolean update() {
@@ -671,20 +691,23 @@ public class dInventory implements dObject, Notable, Adjustable {
                     if (firstFree == -1) {
                         // No space at all!
                         break;
-                    } else {
+                    }
+                    else {
                         // More than a single stack!
                         if (amount > max) {
                             ItemStack clone = item.clone();
                             clone.setAmount(max);
                             inventory.setItem(firstFree, clone);
                             item.setAmount(amount -= max);
-                        } else {
+                        }
+                        else {
                             // Just store it
                             inventory.setItem(firstFree, item);
                             break;
                         }
                     }
-                } else {
+                }
+                else {
                     // So, apparently it might only partially fit, well lets do just that
                     ItemStack partialItem = inventory.getItem(firstPartial);
 
@@ -734,20 +757,23 @@ public class dInventory implements dObject, Notable, Adjustable {
                         // No space at all!
                         leftovers.add(item);
                         break;
-                    } else {
+                    }
+                    else {
                         // More than a single stack!
                         if (amount > max) {
                             ItemStack clone = item.clone();
                             clone.setAmount(max);
                             inventory.setItem(firstFree, clone);
                             item.setAmount(amount -= max);
-                        } else {
+                        }
+                        else {
                             // Just store it
                             inventory.setItem(firstFree, item);
                             break;
                         }
                     }
-                } else {
+                }
+                else {
                     // So, apparently it might only partially fit, well lets do just that
                     ItemStack partialItem = inventory.getItem(firstPartial);
 
@@ -778,9 +804,10 @@ public class dInventory implements dObject, Notable, Adjustable {
         for (int i = 0; i < items.length; i++) {
             ItemStack item = items[i];
             try {
-                inventory.setItem(i+slot, item);
-            } catch (Exception e) {
-                leftovers.add(i+slot, item);
+                inventory.setItem(i + slot, item);
+            }
+            catch (Exception e) {
+                leftovers.add(i + slot, item);
             }
         }
 
@@ -791,24 +818,20 @@ public class dInventory implements dObject, Notable, Adjustable {
      * Count the number or quantities of stacks that
      * match an item in an inventory.
      *
-     * @param item  The item (can be null)
-     * @param stacks  Whether stacks should be counted
-     *                   instead of item quantities
-     * @return  The number of stacks or quantity of items
-     *
+     * @param item   The item (can be null)
+     * @param stacks Whether stacks should be counted
+     *               instead of item quantities
+     * @return The number of stacks or quantity of items
      */
 
-    public int count(ItemStack item, boolean stacks)
-    {
+    public int count(ItemStack item, boolean stacks) {
         if (inventory == null) return 0;
 
         int qty = 0;
 
-        for (ItemStack invStack : inventory)
-        {
+        for (ItemStack invStack : inventory) {
             // If ItemStacks are empty here, they are null
-            if (invStack != null)
-            {
+            if (invStack != null) {
                 // If item is null, include all items in the
                 // inventory
 
@@ -832,9 +855,8 @@ public class dInventory implements dObject, Notable, Adjustable {
      * Keep only the items from a certain array
      * in this inventory, removing all others
      *
-     * @param items  The array of items
-     * @return  The resulting dInventory
-     *
+     * @param items The array of items
+     * @return The resulting dInventory
      */
 
     public dInventory keep(ItemStack[] items) {
@@ -876,9 +898,8 @@ public class dInventory implements dObject, Notable, Adjustable {
      * inventory by removing them over and over
      * until they are completely gone
      *
-     * @param items  The array of items
-     * @return  The resulting dInventory
-     *
+     * @param items The array of items
+     * @return The resulting dInventory
      */
 
     public dInventory exclude(ItemStack[] items) {
@@ -902,9 +923,8 @@ public class dInventory implements dObject, Notable, Adjustable {
      * continuing to add the items to it over and
      * over until there is no more room
      *
-     * @param items  The array of items
-     * @return  The resulting dInventory
-     *
+     * @param items The array of items
+     * @return The resulting dInventory
      */
 
     public dInventory fill(ItemStack[] items) {
@@ -927,9 +947,8 @@ public class dInventory implements dObject, Notable, Adjustable {
      * Remove an array of items from this inventory,
      * and return the result
      *
-     * @param items  The array of items
-     * @return  The resulting dInventory
-     *
+     * @param items The array of items
+     * @return The resulting dInventory
      */
 
     public dInventory remove(ItemStack[] items) {
@@ -950,11 +969,10 @@ public class dInventory implements dObject, Notable, Adjustable {
      * Denizen support for updatable quest journals
      * and their like
      *
-     * @param   title  The title of the book
-     * @param   author The author of the book
-     * @param   quantity The number of books to remove
-     * @return  The resulting dInventory
-     *
+     * @param title    The title of the book
+     * @param author   The author of the book
+     * @param quantity The number of books to remove
+     * @return The resulting dInventory
      */
 
     public dInventory removeBook(String title, String author, int quantity) {
@@ -999,8 +1017,7 @@ public class dInventory implements dObject, Notable, Adjustable {
      * Replace another inventory with this one,
      * cropping it if necessary so that it fits.
      *
-     * @param destination  The destination inventory
-     *
+     * @param destination The destination inventory
      */
 
     public void replace(dInventory destination) {
@@ -1025,8 +1042,8 @@ public class dInventory implements dObject, Notable, Adjustable {
      * Set items in an inventory, starting with a specified slot
      *
      * @param slot  The slot to start from
-     * @param items  The items to add
-     * @return  The resulting dInventory
+     * @param items The items to add
+     * @return The resulting dInventory
      */
     public dInventory setSlots(int slot, ItemStack... items) {
 
@@ -1034,10 +1051,15 @@ public class dInventory implements dObject, Notable, Adjustable {
 
         for (int i = 0; i < items.length; i++) {
             ItemStack item = items[i];
-            if (item == null) continue;
-            inventory.setItem(slot+i, item);
+            if (item == null) continue; // TODO: Should we allow setting null (air)?
+            if (slot + i < 0 || slot + i >= inventory.getSize()) {
+                break;
+            }
+            inventory.setItem(slot + i, item);
         }
-
+        if (Depends.citizens != null && dNPC.matches(idHolder)) { // TODO: Directly store holder
+            dNPC.valueOf(idHolder).getInventoryTrait().setContents(inventory.getContents());
+        }
         return this;
 
     }
@@ -1149,15 +1171,27 @@ public class dInventory implements dObject, Notable, Adjustable {
 
                 if (strict) {
                     for (ItemStack item : getContents()) {
-                        if (item != null && item.hasItemMeta() && item.getItemMeta().hasDisplayName() &&
+                        if (item != null && item.getType() == Material.WRITTEN_BOOK
+                                && ((BookMeta) item.getItemMeta()).getTitle().equalsIgnoreCase(search_string)) {
+                            found_items += item.getAmount();
+                            if (found_items >= qty) break;
+                        }
+                        else if (item != null && item.hasItemMeta() && item.getItemMeta().hasDisplayName() &&
                                 item.getItemMeta().getDisplayName().equalsIgnoreCase(search_string)) {
                             found_items += item.getAmount();
                             if (found_items >= qty) break;
                         }
                     }
-                } else {
+                }
+                else {
                     for (ItemStack item : getContents()) {
-                        if (item != null && item.hasItemMeta() && item.getItemMeta().hasDisplayName() &&
+                        if (item != null && item.getType() == Material.WRITTEN_BOOK
+                                && ((BookMeta) item.getItemMeta()).getTitle()
+                                .toLowerCase().contains(search_string.toLowerCase())) {
+                            found_items += item.getAmount();
+                            if (found_items >= qty) break;
+                        }
+                        else if (item != null && item.hasItemMeta() && item.getItemMeta().hasDisplayName() &&
                                 item.getItemMeta().getDisplayName().toLowerCase()
                                         .contains(search_string.toLowerCase())) {
                             found_items += item.getAmount();
@@ -1211,7 +1245,8 @@ public class dInventory implements dObject, Notable, Adjustable {
                 int found_items = 0;
 
                 if (strict) {
-                    strict_items: for (ItemStack item : getContents()) {
+                    strict_items:
+                    for (ItemStack item : getContents()) {
                         if (item != null && item.hasItemMeta() && item.getItemMeta().hasLore()) {
                             List<String> item_lore = item.getItemMeta().getLore();
                             if (lore.size() != item_lore.size()) continue;
@@ -1226,12 +1261,14 @@ public class dInventory implements dObject, Notable, Adjustable {
                             }
                         }
                     }
-                } else {
+                }
+                else {
                     for (ItemStack item : getContents()) {
                         if (item != null && item.hasItemMeta() && item.getItemMeta().hasLore()) {
                             List<String> item_lore = item.getItemMeta().getLore();
                             int loreCount = 0;
-                            lines: for (String line : lore) {
+                            lines:
+                            for (String line : lore) {
                                 for (String item_line : item_lore) {
                                     if (item_line.toLowerCase().contains(line.toLowerCase())) {
                                         loreCount++;
@@ -1387,8 +1424,8 @@ public class dInventory implements dObject, Notable, Adjustable {
                 && attribute.hasContext(1)
                 && dItem.matches(attribute.getContext(1))) {
             dItem item = dItem.valueOf(attribute.getContext(1),
-                    attribute.getScriptEntry() != null ? ((BukkitScriptEntryData)attribute.getScriptEntry().entryData).getPlayer(): null,
-                    attribute.getScriptEntry() != null ? ((BukkitScriptEntryData)attribute.getScriptEntry().entryData).getNPC(): null);
+                    attribute.getScriptEntry() != null ? ((BukkitScriptEntryData) attribute.getScriptEntry().entryData).getPlayer() : null,
+                    attribute.getScriptEntry() != null ? ((BukkitScriptEntryData) attribute.getScriptEntry().entryData).getNPC() : null);
             item.setAmount(1);
             int slot = -1;
             for (int i = 0; i < inventory.getSize(); i++) {
@@ -1414,9 +1451,9 @@ public class dInventory implements dObject, Notable, Adjustable {
         if (attribute.startsWith("find")
                 && attribute.hasContext(1)
                 && dItem.matches(attribute.getContext(1))) {
-                dItem item = dItem.valueOf(attribute.getContext(1),
-                        attribute.getScriptEntry() != null ? ((BukkitScriptEntryData)attribute.getScriptEntry().entryData).getPlayer(): null,
-                        attribute.getScriptEntry() != null ? ((BukkitScriptEntryData)attribute.getScriptEntry().entryData).getNPC(): null);
+            dItem item = dItem.valueOf(attribute.getContext(1),
+                    attribute.getScriptEntry() != null ? ((BukkitScriptEntryData) attribute.getScriptEntry().entryData).getPlayer() : null,
+                    attribute.getScriptEntry() != null ? ((BukkitScriptEntryData) attribute.getScriptEntry().entryData).getNPC() : null);
             item.setAmount(1);
             int slot = -1;
             for (int i = 0; i < inventory.getSize(); i++) {
@@ -1479,8 +1516,8 @@ public class dInventory implements dObject, Notable, Adjustable {
             if (attribute.hasContext(1) && dItem.matches(attribute.getContext(1)))
                 return new Element(count // TODO: Handle no-script-entry cases
                         (dItem.valueOf(attribute.getContext(1),
-                                ((BukkitScriptEntryData)attribute.getScriptEntry().entryData).getPlayer(),
-                                ((BukkitScriptEntryData)attribute.getScriptEntry().entryData).getNPC()).getItemStack(), false))
+                                ((BukkitScriptEntryData) attribute.getScriptEntry().entryData).getPlayer(),
+                                ((BukkitScriptEntryData) attribute.getScriptEntry().entryData).getNPC()).getItemStack(), false))
                         .getAttribute(attribute.fulfill(1));
             else
                 return new Element(count(null, false))
@@ -1497,8 +1534,8 @@ public class dInventory implements dObject, Notable, Adjustable {
             if (attribute.hasContext(1) && dItem.matches(attribute.getContext(1)))
                 return new Element(count // TODO: Handle no-script-entry cases
                         (dItem.valueOf(attribute.getContext(1),
-                                ((BukkitScriptEntryData)attribute.getScriptEntry().entryData).getPlayer(),
-                                ((BukkitScriptEntryData)attribute.getScriptEntry().entryData).getNPC()).getItemStack(), true))
+                                ((BukkitScriptEntryData) attribute.getScriptEntry().entryData).getPlayer(),
+                                ((BukkitScriptEntryData) attribute.getScriptEntry().entryData).getNPC()).getItemStack(), true))
                         .getAttribute(attribute.fulfill(1));
             else
                 return new Element(count(null, true))
@@ -1511,7 +1548,7 @@ public class dInventory implements dObject, Notable, Adjustable {
         // Returns the item in the specified slot.
         // -->
         if (attribute.startsWith("slot")
-                &&attribute.hasContext(1)
+                && attribute.hasContext(1)
                 && aH.matchesInteger(attribute.getContext(1))) {
             int slot = new Element(attribute.getContext(1)).asInt() - 1;
             if (slot < 0) slot = 0;

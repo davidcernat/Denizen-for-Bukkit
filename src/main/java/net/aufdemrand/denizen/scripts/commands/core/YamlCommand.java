@@ -1,18 +1,22 @@
 package net.aufdemrand.denizen.scripts.commands.core;
 
 import net.aufdemrand.denizen.Settings;
-import net.aufdemrand.denizen.tags.ReplaceableTagEvent;
-import net.aufdemrand.denizen.tags.TagManager;
+import net.aufdemrand.denizen.utilities.DenizenAPI;
+import net.aufdemrand.denizen.utilities.debugging.dB;
 import net.aufdemrand.denizencore.exceptions.CommandExecutionException;
 import net.aufdemrand.denizencore.exceptions.InvalidArgumentsException;
-import net.aufdemrand.denizen.scripts.ScriptEntry;
-import net.aufdemrand.denizen.scripts.commands.AbstractCommand;
-import net.aufdemrand.denizen.tags.Attribute;
-import net.aufdemrand.denizen.utilities.DenizenAPI;
-import net.aufdemrand.denizen.objects.*;
-import net.aufdemrand.denizen.utilities.debugging.dB;
+import net.aufdemrand.denizencore.objects.Element;
+import net.aufdemrand.denizencore.objects.aH;
+import net.aufdemrand.denizencore.objects.dList;
+import net.aufdemrand.denizencore.objects.dObject;
+import net.aufdemrand.denizencore.scripts.ScriptEntry;
 import net.aufdemrand.denizencore.scripts.ScriptHelper;
+import net.aufdemrand.denizencore.scripts.commands.AbstractCommand;
+import net.aufdemrand.denizencore.tags.Attribute;
+import net.aufdemrand.denizencore.tags.ReplaceableTagEvent;
+import net.aufdemrand.denizencore.tags.TagManager;
 import net.aufdemrand.denizencore.utilities.YamlConfiguration;
+import net.aufdemrand.denizencore.utilities.text.StringHolder;
 import org.bukkit.Bukkit;
 import org.bukkit.event.Listener;
 import org.json.JSONObject;
@@ -32,14 +36,19 @@ public class YamlCommand extends AbstractCommand implements Listener {
     Map<String, YamlConfiguration> yamls = new HashMap<String, YamlConfiguration>();
 
     private YamlConfiguration getYaml(String id) {
-        if (id == null) return null;
+        if (id == null) {
+            dB.echoError("Trying to get YAML file with NULL ID!");
+            return null;
+        }
         return yamls.get(id.toUpperCase());
     }
 
-    public static enum Action { LOAD, UNLOAD, CREATE, WRITE, SAVE, SET }
+    public static enum Action {LOAD, UNLOAD, CREATE, WRITE, SAVE, SET}
 
-    public static enum YAML_Action { SET_VALUE, INCREASE, DECREASE, MULTIPLY,
-        DIVIDE, INSERT, REMOVE, SPLIT, DELETE }
+    public static enum YAML_Action {
+        SET_VALUE, INCREASE, DECREASE, MULTIPLY,
+        DIVIDE, INSERT, REMOVE, SPLIT, DELETE
+    }
 
     @Override
     public void parseArgs(ScriptEntry scriptEntry) throws InvalidArgumentsException {
@@ -207,10 +216,10 @@ public class YamlCommand extends AbstractCommand implements Listener {
         YamlConfiguration yamlConfiguration;
 
         dB.report(scriptEntry, getName(),
-                        idElement.debug()
+                idElement.debug()
                         + actionElement.debug()
                         + (filename != null ? filename.debug() : "")
-                        + (yaml_action != null ? aH.debugObj("yaml_action", yaml_action.name()): "")
+                        + (yaml_action != null ? aH.debugObj("yaml_action", yaml_action.name()) : "")
                         + (key != null ? key.debug() : "")
                         + (value != null ? value.debug() : "")
                         + (split != null ? split.debug() : "")
@@ -274,7 +283,8 @@ public class YamlCommand extends AbstractCommand implements Listener {
                         writer.write(yamls.get(id).saveToString());
                         writer.close();
                         fw.close();
-                    } catch (IOException e) {
+                    }
+                    catch (IOException e) {
                         dB.echoError(e);
                     }
                 }
@@ -307,7 +317,10 @@ public class YamlCommand extends AbstractCommand implements Listener {
                     if (key.asString().contains("[")) {
                         try {
                             index = Integer.valueOf(key.asString().split("\\[")[1].replace("]", "")) - 1;
-                        } catch (Exception e) { index = -1; }
+                        }
+                        catch (Exception e) {
+                            index = -1;
+                        }
                         key = Element.valueOf(key.asString().split("\\[")[0]);
                     }
 
@@ -316,16 +329,16 @@ public class YamlCommand extends AbstractCommand implements Listener {
 
                     switch (yaml_action) {
                         case INCREASE:
-                            Set(yaml, index, keyStr, String.valueOf(aH.getIntegerFrom(Get(yaml, index, keyStr, "0")) + aH.getIntegerFrom(valueStr)));
+                            Set(yaml, index, keyStr, String.valueOf(aH.getFloatFrom(Get(yaml, index, keyStr, "0")) + aH.getFloatFrom(valueStr)));
                             break;
                         case DECREASE:
-                            Set(yaml, index, keyStr, String.valueOf(aH.getIntegerFrom(Get(yaml, index, keyStr, "0")) - aH.getIntegerFrom(valueStr)));
+                            Set(yaml, index, keyStr, String.valueOf(aH.getFloatFrom(Get(yaml, index, keyStr, "0")) - aH.getFloatFrom(valueStr)));
                             break;
                         case MULTIPLY:
-                            Set(yaml, index, keyStr, String.valueOf(aH.getIntegerFrom(Get(yaml, index, keyStr, "1")) * aH.getIntegerFrom(valueStr)));
+                            Set(yaml, index, keyStr, String.valueOf(aH.getFloatFrom(Get(yaml, index, keyStr, "1")) * aH.getFloatFrom(valueStr)));
                             break;
                         case DIVIDE:
-                            Set(yaml, index, keyStr, String.valueOf(aH.getIntegerFrom(Get(yaml, index, keyStr, "1")) / aH.getIntegerFrom(valueStr)));
+                            Set(yaml, index, keyStr, String.valueOf(aH.getFloatFrom(Get(yaml, index, keyStr, "1")) / aH.getFloatFrom(valueStr)));
                             break;
                         case DELETE:
                             yaml.set(keyStr, null);
@@ -333,8 +346,7 @@ public class YamlCommand extends AbstractCommand implements Listener {
                         case SET_VALUE:
                             Set(yaml, index, keyStr, valueStr);
                             break;
-                        case INSERT:
-                        {
+                        case INSERT: {
                             List<String> list = yaml.getStringList(keyStr);
                             if (list == null)
                                 list = new ArrayList<String>();
@@ -342,8 +354,7 @@ public class YamlCommand extends AbstractCommand implements Listener {
                             yaml.set(keyStr, list);
                             break;
                         }
-                        case REMOVE:
-                        {
+                        case REMOVE: {
                             List<String> list = yaml.getStringList(keyStr);
                             if (list == null)
                                 break;
@@ -361,8 +372,7 @@ public class YamlCommand extends AbstractCommand implements Listener {
                                 break;
                             }
                         }
-                        case SPLIT:
-                        {
+                        case SPLIT: {
                             List<String> list = yaml.getStringList(keyStr);
                             if (list == null)
                                 list = new ArrayList<String>();
@@ -395,7 +405,7 @@ public class YamlCommand extends AbstractCommand implements Listener {
             if (index < 0)
                 index = 0;
             if (index > list.size())
-                index = list.size() -1;
+                index = list.size() - 1;
             if (list.size() == 0)
                 return "";
             return list.get(index);
@@ -411,7 +421,7 @@ public class YamlCommand extends AbstractCommand implements Listener {
             if (index < 0)
                 index = 0;
             if (index > list.size())
-                index = list.size() -1;
+                index = list.size() - 1;
             if (list.size() == 0)
                 list.add("");
             list.set(index, value);
@@ -447,14 +457,15 @@ public class YamlCommand extends AbstractCommand implements Listener {
         }
 
         // Set id (name context) and path (type context)
-        String id = event.getNameContext();
+        String id = event.getNameContext().toUpperCase();
         String path = event.getTypeContext();
 
         // Check if there is a yaml file loaded with the specified id
-        if (!yamls.containsKey(id.toUpperCase())
-                && !attribute.hasAlternative()) {
-            dB.echoError("YAML tag '" + event.raw_tag + "' has specified an invalid ID, or the specified id has already" +
-                    " been closed. Tag replacement aborted. ID given: '" + id + "'.");
+        if (!yamls.containsKey(id)) {
+            if (!attribute.hasAlternative()) {
+                dB.echoError("YAML tag '" + event.raw_tag + "' has specified an invalid ID, or the specified id has already" +
+                        " been closed. Tag replacement aborted. ID given: '" + id + "'.");
+            }
             return;
         }
 
@@ -531,7 +542,7 @@ public class YamlCommand extends AbstractCommand implements Listener {
         // Returns a dList of all the keys at the path and all subpaths.
         // -->
         if (attribute.startsWith("list_deep_keys")) {
-            Set<String> keys;
+            Set<StringHolder> keys;
             if (path != null && path.length() > 0) {
                 YamlConfiguration section = getYaml(id).getConfigurationSection(path);
                 if (section == null) {
@@ -545,10 +556,9 @@ public class YamlCommand extends AbstractCommand implements Listener {
             if (keys == null) {
                 return;
 
-            } else {
-                ArrayList<String> list = new ArrayList<String>();
-                list.addAll(keys);
-                event.setReplaced(new dList(list).getAttribute(attribute.fulfill(1)));
+            }
+            else {
+                event.setReplaced(new dList(keys).getAttribute(attribute.fulfill(1)));
                 return;
             }
         }
@@ -560,7 +570,7 @@ public class YamlCommand extends AbstractCommand implements Listener {
         // Returns a dList of all the keys at the path.
         // -->
         if (attribute.startsWith("list_keys")) {
-            Set<String> keys;
+            Set<StringHolder> keys;
             if (path != null && path.length() > 0) {
                 YamlConfiguration section = getYaml(id).getConfigurationSection(path);
                 if (section == null) {
@@ -574,10 +584,9 @@ public class YamlCommand extends AbstractCommand implements Listener {
             if (keys == null) {
                 return;
 
-            } else {
-                ArrayList<String> list = new ArrayList<String>();
-                list.addAll(keys);
-                event.setReplaced(new dList(list).getAttribute(attribute.fulfill(1)));
+            }
+            else {
+                event.setReplaced(new dList(keys).getAttribute(attribute.fulfill(1)));
                 return;
             }
         }

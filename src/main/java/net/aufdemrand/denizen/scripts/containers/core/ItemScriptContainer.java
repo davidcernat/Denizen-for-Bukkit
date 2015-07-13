@@ -1,23 +1,26 @@
 package net.aufdemrand.denizen.scripts.containers.core;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
-import net.aufdemrand.denizen.objects.*;
-import net.aufdemrand.denizen.scripts.ScriptRegistry;
-import net.aufdemrand.denizen.scripts.containers.ScriptContainer;
+import net.aufdemrand.denizen.objects.dItem;
+import net.aufdemrand.denizen.objects.dNPC;
+import net.aufdemrand.denizen.objects.dPlayer;
 import net.aufdemrand.denizen.tags.BukkitTagContext;
-import net.aufdemrand.denizen.tags.TagManager;
 import net.aufdemrand.denizen.utilities.debugging.dB;
 import net.aufdemrand.denizen.utilities.nbt.LeatherColorer;
-
+import net.aufdemrand.denizencore.objects.dList;
+import net.aufdemrand.denizencore.objects.dScript;
+import net.aufdemrand.denizencore.scripts.ScriptRegistry;
+import net.aufdemrand.denizencore.scripts.containers.ScriptContainer;
+import net.aufdemrand.denizencore.tags.TagManager;
 import net.aufdemrand.denizencore.utilities.YamlConfiguration;
 import org.bukkit.Bukkit;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.inventory.FurnaceRecipe;
 import org.bukkit.inventory.meta.ItemMeta;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 public class ItemScriptContainer extends ScriptContainer {
 
@@ -52,13 +55,15 @@ public class ItemScriptContainer extends ScriptContainer {
     //   - item
     //   - ...
     //
+    //   # If you want an item to be damaged on creation, you can change its durability.
+    //   durability: 12
+    //
     //   # Each line must specify a valid Bukkit enchantment. See 'enchantments' for more information.
     //   enchantments:
     //   - enchantment_name:level
     //   - ...
     //
-    //   # You can specify the items required to craft your item. For an empty slot, use i@air. Currently, Denizen only
-    //   # supports shaped recipes.
+    //   # You can specify the items required to craft your item. For an empty slot, use i@air.
     //   recipe:
     //   - i@item|i@item|i@item
     //   - i@item|i@item|i@item
@@ -161,7 +166,7 @@ public class ItemScriptContainer extends ScriptContainer {
     }
 
     public dItem getItemFrom() {
-       return getItemFrom(null, null);
+        return getItemFrom(null, null);
     }
 
     public dItem getItemFrom(dPlayer player, dNPC npc) {
@@ -173,7 +178,7 @@ public class ItemScriptContainer extends ScriptContainer {
                 debug = Boolean.valueOf(getString("DEBUG"));
             }
             // Check validity of material
-            if (contains("MATERIAL")){
+            if (contains("MATERIAL")) {
                 String material = TagManager.tag(getString("MATERIAL"), new BukkitTagContext(player, npc, false, null, debug, new dScript(this)));
                 if (material.startsWith("m@"))
                     material = material.substring(2);
@@ -195,7 +200,7 @@ public class ItemScriptContainer extends ScriptContainer {
                 lore.add(hash);
 
             // Set Display Name
-            if (contains("DISPLAY NAME")){
+            if (contains("DISPLAY NAME")) {
                 String displayName = TagManager.tag(getString("DISPLAY NAME"), new BukkitTagContext(player, npc, false, null, debug, new dScript(this)));
                 meta.setDisplayName(displayName);
             }
@@ -208,14 +213,20 @@ public class ItemScriptContainer extends ScriptContainer {
             // Set Lore
             if (contains("LORE")) {
 
-                for (String l : getStringList("LORE")){
-                     l = TagManager.tag(l, new BukkitTagContext(player, npc, false, null, debug, new dScript(this)));
-                     lore.add(l);
+                for (String l : getStringList("LORE")) {
+                    l = TagManager.tag(l, new BukkitTagContext(player, npc, false, null, debug, new dScript(this)));
+                    lore.add(l);
                 }
             }
 
             meta.setLore(lore);
             stack.getItemStack().setItemMeta(meta);
+
+            // Set Durability
+            if (contains("DURABILITY")) {
+                short durability = Short.valueOf(getString("DURABILITY"));
+                stack.setDurability(durability);
+            }
 
             // Set Enchantments
             if (contains("ENCHANTMENTS")) {
@@ -242,8 +253,7 @@ public class ItemScriptContainer extends ScriptContainer {
             }
 
             // Set Color
-            if (contains("COLOR"))
-            {
+            if (contains("COLOR")) {
                 String color = TagManager.tag(getString("COLOR"), new BukkitTagContext(player, npc, false, null, debug, new dScript(this)));
                 LeatherColorer.colorArmor(stack, color);
             }
@@ -251,12 +261,15 @@ public class ItemScriptContainer extends ScriptContainer {
             // Set Book
             if (contains("BOOK")) {
                 BookScriptContainer book = ScriptRegistry
-                        .getScriptContainer(TagManager.tag(getString("BOOK"), new BukkitTagContext(player, npc, false, null, debug, new dScript(this))).replace("s@", ""));
+                        .getScriptContainer(TagManager.tag(getString("BOOK"),
+                                new BukkitTagContext(player, npc, false, null, debug,
+                                        new dScript(this))).replace("s@", ""));
 
                 stack = book.writeBookTo(stack, player, npc);
             }
 
-        } catch (Exception e) {
+        }
+        catch (Exception e) {
             dB.echoError("Woah! An exception has been called with this item script!");
             dB.echoError(e);
             stack = null;

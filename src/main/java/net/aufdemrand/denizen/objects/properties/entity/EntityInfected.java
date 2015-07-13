@@ -1,11 +1,11 @@
 package net.aufdemrand.denizen.objects.properties.entity;
 
-import net.aufdemrand.denizen.objects.Element;
-import net.aufdemrand.denizen.objects.Mechanism;
 import net.aufdemrand.denizen.objects.dEntity;
-import net.aufdemrand.denizen.objects.dObject;
-import net.aufdemrand.denizen.objects.properties.Property;
-import net.aufdemrand.denizen.tags.Attribute;
+import net.aufdemrand.denizencore.objects.Element;
+import net.aufdemrand.denizencore.objects.Mechanism;
+import net.aufdemrand.denizencore.objects.dObject;
+import net.aufdemrand.denizencore.objects.properties.Property;
+import net.aufdemrand.denizencore.tags.Attribute;
 import net.citizensnpcs.api.npc.NPC;
 import net.citizensnpcs.trait.ZombieModifier;
 import org.bukkit.entity.EntityType;
@@ -17,13 +17,13 @@ public class EntityInfected implements Property {
     public static boolean describes(dObject entity) {
         if (!(entity instanceof dEntity)) return false;
         // Check if a Villager or Zombie -- the only two EntityTypes that can be 'infected'
-        return ((dEntity) entity).getEntityType() == EntityType.ZOMBIE
-                || ((dEntity) entity).getEntityType() == EntityType.VILLAGER;
+        return ((dEntity) entity).getBukkitEntityType() == EntityType.ZOMBIE
+                || ((dEntity) entity).getBukkitEntityType() == EntityType.VILLAGER;
     }
 
     public static EntityInfected getFrom(dObject entity) {
         if (!describes(entity)) return null;
-        else return new EntityInfected((dEntity)entity);
+        else return new EntityInfected((dEntity) entity);
     }
 
 
@@ -45,7 +45,7 @@ public class EntityInfected implements Property {
     public void setInfected(boolean bool) {
 
         if (bool) {
-            if (infected.isNPC()) {
+            if (infected.isCitizensNPC()) {
                 NPC infected_npc = infected.getDenizenNPC().getCitizen();
                 infected_npc.setBukkitEntityType(EntityType.ZOMBIE);
                 if (!infected_npc.getTrait(ZombieModifier.class).toggleVillager())

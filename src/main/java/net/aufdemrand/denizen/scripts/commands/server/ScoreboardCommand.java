@@ -1,35 +1,98 @@
 package net.aufdemrand.denizen.scripts.commands.server;
 
-import java.util.List;
-
+import net.aufdemrand.denizen.objects.dPlayer;
 import net.aufdemrand.denizen.utilities.FakeOfflinePlayer;
+import net.aufdemrand.denizen.utilities.ScoreboardHelper;
+import net.aufdemrand.denizen.utilities.debugging.dB;
+import net.aufdemrand.denizencore.exceptions.CommandExecutionException;
+import net.aufdemrand.denizencore.exceptions.InvalidArgumentsException;
+import net.aufdemrand.denizencore.objects.Element;
+import net.aufdemrand.denizencore.objects.aH;
+import net.aufdemrand.denizencore.objects.dList;
+import net.aufdemrand.denizencore.scripts.ScriptEntry;
+import net.aufdemrand.denizencore.scripts.commands.AbstractCommand;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.scoreboard.DisplaySlot;
 import org.bukkit.scoreboard.Objective;
 import org.bukkit.scoreboard.Scoreboard;
 
-import net.aufdemrand.denizencore.exceptions.CommandExecutionException;
-import net.aufdemrand.denizencore.exceptions.InvalidArgumentsException;
-import net.aufdemrand.denizen.objects.Element;
-import net.aufdemrand.denizen.objects.aH;
-import net.aufdemrand.denizen.objects.dList;
-import net.aufdemrand.denizen.objects.dPlayer;
-import net.aufdemrand.denizen.scripts.ScriptEntry;
-import net.aufdemrand.denizen.scripts.commands.AbstractCommand;
-import net.aufdemrand.denizen.utilities.ScoreboardHelper;
-import net.aufdemrand.denizen.utilities.debugging.dB;
+import java.util.List;
 
-
-/**
- * Add or removes viewers, objectives and scores from scoreboards.
- *
- * @author David Cernat
- */
+// <--[example]
+// @Title Smooth Scoreboard Updates
+// @Description
+// Use this method to create scoreboards that update smoothly (without jitter).
+//
+// @Code
+// # How to make smoothly updating global and player-specific scoreboards using Denizen.
+// # Most people seem to experience glitching and jittering in the scoreboard when attempting to make an updating scoreboard,
+// # so I'm going to show you my method that is mostly glitch free.
+//
+// # we're going to start with creating player specific scoreboards (these will run as the player,
+// # allowing you to pull specific tags that fill in differently for each player, such as p@player.location, p@player.health, and many more.)
+// # First we create a script that loops itself.
+// looping_scoreboard_script:
+//   type: task
+//   script:
+//   - foreach <server.list_online_players> {
+//     - run player_specific_scoreboard_script player:<def[value]> instantly
+//     }
+//   - run looping_scoreboard_script instantly delay:19t
+//   # You can include an IF statement to ensure that only people who choose to, will be shown their scoreboard.
+//   # I'm using 19 ticks as a delay, to make sure it syncs up with other looping scripts as few times as possible
+//   # (assuming that those looping scripts are using an even, bigger number as delay, such as 20 ticks, 5 seconds, etc..)
+//   # whist still updating faster than seconds pass.
+//
+// # Now we'll create the script that runs as each player.
+// player_specific_scoreboard_script:
+//   type: task
+//   script:
+//   - define ID <player.name><server.current_time_millis>
+//   - scoreboard add id:<def[ID]>
+//   # We create the new scoreboard, with a unique player specific ID. We're using the server.current_time_millis
+//   # tag to ensure that each time it loops it'll have a unique ID that can't be identical to the previous one at all.
+//   - scoreboard add id:<def[ID]> "objective:<&6>Stats" "lines:<&c>Health<&co>" score:15
+//   - scoreboard add id:<def[ID]> "objective:<&6>Stats" "lines:<&e><player.health.percentage||0><&pc>" score:14
+//   - scoreboard add id:<def[ID]> "objective:<&6>Stats" "lines:<&c>Location<&co>" score:13
+//   - scoreboard add id:<def[ID]> "objective:<&6>Stats" "lines:<&e><player.location.simple||nowhere>" score:12
+//   # Note; we are using scores to ensure the position of the line inside the scoreboard. If 2
+//   # lines have an equal score they will be ordered alphabetically.
+//   - scoreboard add id:<def[ID]> "objective:<&6>Stats" "lines:<&c>Ping<&co>" score:11
+//   - scoreboard add id:<def[ID]> "objective:<&6>Stats" "lines:<&e><player.ping||-1>" score:10
+//   - scoreboard add id:<def[ID]> viewers:<player>
+//   # Now we add the player to the scoreboard.
+//   - wait 2s
+//   - scoreboard remove id:<def[ID]>
+//   # Lastly, we remove the scoreboard again, after a short delay.
+//   # This delay has to be longer than the delay on the looping script to ensure smoothness!
+//
+// # You can ensure this script runs at all times by creating a world script with the
+// # 'on server start' event, that runs the looping script.
+// scoreboard_initiator:
+//   type: world
+//   events:
+//     on server start:
+//     - run looping_scoreboard_script instantly
+//
+// # Additional notes: If you're using multiple variables that could return the same result, make
+// # the lines unique by using different colour code combinations.
+// # For example: "lines:<&a><&e><player.health>" and "lines:<&b><&e><player.saturation>"
+//
+// # The maximum character length of a scoreboard line is 48. This includes colour codes!
+// # (not including the <>'s.) If you're unsure whether a tag will fill in with a string longer
+// # than 48 characters, use the substring tag.
+// # For example: <player.flag[flagname].substring[1,48]>
+//
+// # To make a global scoreboard instead, make the script with the scoreboard commands loop on it's own,
+// # and add viewers:<server.list_online_players> instead.
+// # An example of this script in action: <@link url http://i.imgur.com/2tmQxff.png>
+//
+// -->
 
 public class ScoreboardCommand extends AbstractCommand {
 
-    private enum Action { ADD, REMOVE }
+    private enum Action {ADD, REMOVE}
 
     @Override
     public void parseArgs(ScriptEntry scriptEntry) throws InvalidArgumentsException {
@@ -38,43 +101,43 @@ public class ScoreboardCommand extends AbstractCommand {
         for (aH.Argument arg : aH.interpret(scriptEntry.getArguments())) {
 
             if (!scriptEntry.hasObject("action")
-                && arg.matchesEnum(Action.values())) {
-               scriptEntry.addObject("action", arg.asElement());
+                    && arg.matchesEnum(Action.values())) {
+                scriptEntry.addObject("action", arg.asElement());
             }
 
             else if (!scriptEntry.hasObject("lines")
-                     && arg.matchesPrefix("lines", "l")) {
+                    && arg.matchesPrefix("lines", "l")) {
                 scriptEntry.addObject("lines", arg.asElement());
             }
 
             else if (!scriptEntry.hasObject("id")
-                     && arg.matchesPrefix("id")) {
+                    && arg.matchesPrefix("id")) {
                 scriptEntry.addObject("id", arg.asElement());
             }
 
             else if (!scriptEntry.hasObject("objective")
-                     && arg.matchesPrefix("objective", "obj", "o")) {
+                    && arg.matchesPrefix("objective", "obj", "o")) {
                 scriptEntry.addObject("objective", arg.asElement());
             }
 
             else if (!scriptEntry.hasObject("criteria")
-                     && arg.matchesPrefix("criteria", "c")) {
+                    && arg.matchesPrefix("criteria", "c")) {
                 scriptEntry.addObject("criteria", arg.asElement());
             }
 
             else if (!scriptEntry.hasObject("score")
-                     && arg.matchesPrimitive(aH.PrimitiveType.Integer)) {
+                    && arg.matchesPrimitive(aH.PrimitiveType.Integer)) {
                 scriptEntry.addObject("score", arg.asElement());
             }
 
             else if (!scriptEntry.hasObject("displayslot")
-                     && (arg.matchesEnum(DisplaySlot.values()) ||
-                         arg.matches("none"))) {
+                    && (arg.matchesEnum(DisplaySlot.values()) ||
+                    arg.matches("none"))) {
                 scriptEntry.addObject("displayslot", arg.asElement());
             }
 
             else if (!scriptEntry.hasObject("viewers")
-                     && arg.matchesArgumentList(dPlayer.class)) {
+                    && arg.matchesArgumentList(dPlayer.class)) {
                 scriptEntry.addObject("viewers", arg.asType(dList.class).filter(dPlayer.class));
             }
 
@@ -102,8 +165,8 @@ public class ScoreboardCommand extends AbstractCommand {
 
         List<dPlayer> viewers = (List<dPlayer>) scriptEntry.getObject("viewers");
         dList lines = scriptEntry.hasObject("lines") ?
-                        dList.valueOf(scriptEntry.getElement("lines").asString()) :
-                        new dList();
+                dList.valueOf(scriptEntry.getElement("lines").asString()) :
+                new dList();
 
         Element action = scriptEntry.getElement("action");
         Element id = scriptEntry.getElement("id");
@@ -115,19 +178,19 @@ public class ScoreboardCommand extends AbstractCommand {
 
         // Report to dB
         dB.report(scriptEntry, getName(), action.debug() +
-                             id.debug() +
-                             (viewers != null ? aH.debugObj("viewers", viewers.toString()) : "") +
-                             (objective != null ? objective.debug() : "") +
-                             (act.equals(Action.ADD) && objective!= null
-                                 ? criteria.debug()
-                                 : "") +
-                             (!lines.isEmpty() ? lines.debug() : "") +
-                             (act.equals(Action.ADD) && score != null
-                                 ? score.debug()
-                                 : "") +
-                             (act.equals(Action.ADD) && objective != null
-                                 ? displaySlot.debug()
-                                 : ""));
+                id.debug() +
+                (viewers != null ? aH.debugObj("viewers", viewers.toString()) : "") +
+                (objective != null ? objective.debug() : "") +
+                (act.equals(Action.ADD) && objective != null
+                        ? criteria.debug()
+                        : "") +
+                (!lines.isEmpty() ? lines.debug() : "") +
+                (act.equals(Action.ADD) && score != null
+                        ? score.debug()
+                        : "") +
+                (act.equals(Action.ADD) && objective != null
+                        ? displaySlot.debug()
+                        : ""));
 
         Scoreboard board = null;
 
@@ -224,7 +287,7 @@ public class ScoreboardCommand extends AbstractCommand {
                 }
                 else {
                     dB.echoError(scriptEntry.getResidingQueue(), "Objective " + objective.asString() +
-                                 " does not exist in scoreboard " + id.asString());
+                            " does not exist in scoreboard " + id.asString());
                 }
             }
             // If lines were specified, but an objective was not, remove the

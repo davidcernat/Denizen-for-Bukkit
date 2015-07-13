@@ -1,19 +1,22 @@
 package net.aufdemrand.denizen.scripts.commands.world;
 
 import net.aufdemrand.denizen.BukkitScriptEntryData;
-import net.aufdemrand.denizen.objects.*;
-import net.aufdemrand.denizencore.utilities.CoreUtilities;
-import net.minecraft.server.v1_8_R1.EnumParticle;
-import net.minecraft.server.v1_8_R1.PacketPlayOutWorldParticles;
-import org.bukkit.Effect;
-import org.bukkit.Material;
-
+import net.aufdemrand.denizen.objects.dLocation;
+import net.aufdemrand.denizen.objects.dPlayer;
+import net.aufdemrand.denizen.utilities.debugging.dB;
 import net.aufdemrand.denizencore.exceptions.CommandExecutionException;
 import net.aufdemrand.denizencore.exceptions.InvalidArgumentsException;
-import net.aufdemrand.denizen.scripts.ScriptEntry;
-import net.aufdemrand.denizen.scripts.commands.AbstractCommand;
-import net.aufdemrand.denizen.utilities.debugging.dB;
-import org.bukkit.craftbukkit.v1_8_R1.entity.CraftPlayer;
+import net.aufdemrand.denizencore.objects.Element;
+import net.aufdemrand.denizencore.objects.aH;
+import net.aufdemrand.denizencore.objects.dList;
+import net.aufdemrand.denizencore.scripts.ScriptEntry;
+import net.aufdemrand.denizencore.scripts.commands.AbstractCommand;
+import net.aufdemrand.denizencore.utilities.CoreUtilities;
+import net.minecraft.server.v1_8_R3.EnumParticle;
+import net.minecraft.server.v1_8_R3.PacketPlayOutWorldParticles;
+import org.bukkit.Effect;
+import org.bukkit.Material;
+import org.bukkit.craftbukkit.v1_8_R3.entity.CraftPlayer;
 import org.bukkit.entity.Player;
 
 import java.util.ArrayList;
@@ -46,7 +49,7 @@ public class PlayEffectCommand extends AbstractCommand {
 
     public static enum ParticleEffect {
         ENDER_SIGNAL(EnumParticle.HEART), // TODO
-        MOBSPAWNER_FLAMES(EnumParticle.MOB_APPEARANCE),
+        MOBSPAWNER_FLAMES(EnumParticle.FLAME), // TODO
         POTION_BREAK(EnumParticle.HEART), // TODO
         SMOKE(EnumParticle.SMOKE_NORMAL),
         HUGE_EXPLOSION(EnumParticle.EXPLOSION_HUGE),
@@ -85,6 +88,7 @@ public class PlayEffectCommand extends AbstractCommand {
         HAPPY_VILLAGER(EnumParticle.VILLAGER_HAPPY),
         BARRIER(EnumParticle.BARRIER);
         public EnumParticle effect;
+
         ParticleEffect(EnumParticle eff) {
             effect = eff;
         }
@@ -157,12 +161,20 @@ public class PlayEffectCommand extends AbstractCommand {
                     && arg.matchesPrimitive(aH.PrimitiveType.Double)
                     && arg.matchesPrefix("offset", "o")) {
 
-                scriptEntry.addObject("offset", arg.asElement());
+                double offset = arg.asElement().asDouble();
+                scriptEntry.addObject("offset", new dLocation(null, offset, offset, offset));
+            }
+
+            else if (!scriptEntry.hasObject("offset")
+                    && arg.matchesArgumentType(dLocation.class)
+                    && arg.matchesPrefix("offset", "o")) {
+
+                scriptEntry.addObject("offset", arg.asType(dLocation.class));
             }
 
             else if (!scriptEntry.hasObject("targets")
-                && arg.matchesArgumentList(dPlayer.class)
-                && arg.matchesPrefix("targets", "target", "t")) {
+                    && arg.matchesArgumentList(dPlayer.class)
+                    && arg.matchesPrefix("targets", "target", "t")) {
 
                 scriptEntry.addObject("targets", arg.asType(dList.class).filter(dPlayer.class));
             }
@@ -173,12 +185,12 @@ public class PlayEffectCommand extends AbstractCommand {
 
         // Use default values if necessary
         scriptEntry.defaultObject("location",
-                ((BukkitScriptEntryData)scriptEntry.entryData).hasNPC() && ((BukkitScriptEntryData)scriptEntry.entryData).getNPC().isSpawned() ? Arrays.asList(((BukkitScriptEntryData)scriptEntry.entryData).getNPC().getLocation()) : null,
-                ((BukkitScriptEntryData)scriptEntry.entryData).hasPlayer() && ((BukkitScriptEntryData)scriptEntry.entryData).getPlayer().isOnline() ? Arrays.asList(((BukkitScriptEntryData)scriptEntry.entryData).getPlayer().getLocation()): null);
+                ((BukkitScriptEntryData) scriptEntry.entryData).hasNPC() && ((BukkitScriptEntryData) scriptEntry.entryData).getNPC().isSpawned() ? Arrays.asList(((BukkitScriptEntryData) scriptEntry.entryData).getNPC().getLocation()) : null,
+                ((BukkitScriptEntryData) scriptEntry.entryData).hasPlayer() && ((BukkitScriptEntryData) scriptEntry.entryData).getPlayer().isOnline() ? Arrays.asList(((BukkitScriptEntryData) scriptEntry.entryData).getPlayer().getLocation()) : null);
         scriptEntry.defaultObject("data", new Element(0));
         scriptEntry.defaultObject("radius", new Element(15));
         scriptEntry.defaultObject("qty", new Element(1));
-        scriptEntry.defaultObject("offset", new Element(0.5));
+        scriptEntry.defaultObject("offset", new dLocation(null, 0.5, 0.5, 0.5));
 
         // Check to make sure required arguments have been filled
 
@@ -203,21 +215,20 @@ public class PlayEffectCommand extends AbstractCommand {
         Element radius = scriptEntry.getElement("radius");
         Element data = scriptEntry.getElement("data");
         Element qty = scriptEntry.getElement("qty");
-        Element offset = scriptEntry.getElement("offset");
+        dLocation offset = scriptEntry.getdObject("offset");
 
         // Report to dB
         dB.report(scriptEntry, getName(), (effect != null ? aH.debugObj("effect", effect.name()) :
                 particleEffect != null ? aH.debugObj("special effect", particleEffect.name()) :
-                iconcrack.debug()) +
+                        iconcrack.debug()) +
                 aH.debugObj("locations", locations.toString()) +
-                (targets != null ? aH.debugObj("targets", targets.toString()): "") +
+                (targets != null ? aH.debugObj("targets", targets.toString()) : "") +
                 radius.debug() +
                 data.debug() +
                 qty.debug() +
-                offset.debug() +
-                (effect != null ? "" : offset.debug()));
+                offset.debug());
 
-        for (dLocation location: locations) {
+        for (dLocation location : locations) {
             // Slightly increase the location's Y so effects don't seem to come out of the ground
             location.add(0, 1, 0);
 
@@ -225,8 +236,9 @@ public class PlayEffectCommand extends AbstractCommand {
             if (effect != null) {
                 for (int n = 0; n < qty.asInt(); n++) {
                     if (targets != null) {
-                        for (dPlayer player: targets)
-                            if (player.isValid() && player.isOnline()) player.getPlayerEntity().playEffect(location, effect, data.asInt());
+                        for (dPlayer player : targets)
+                            if (player.isValid() && player.isOnline())
+                                player.getPlayerEntity().playEffect(location, effect, data.asInt());
                     }
                     else {
                         location.getWorld().playEffect(location, effect, data.asInt(), radius.asInt());
@@ -236,48 +248,52 @@ public class PlayEffectCommand extends AbstractCommand {
 
             // Play a ParticleEffect
             else if (particleEffect != null) {
-                float os = offset.asFloat();
+                float osX = (float) offset.getX();
+                float osY = (float) offset.getY();
+                float osZ = (float) offset.getZ();
                 List<Player> players = new ArrayList<Player>();
                 if (targets == null) {
                     float rad = radius.asFloat();
-                    for (Player player: location.getWorld().getPlayers()) {
+                    for (Player player : location.getWorld().getPlayers()) {
                         if (player.getLocation().distanceSquared(location) < rad * rad) {
                             players.add(player);
                         }
                     }
                 }
                 else {
-                    for (dPlayer player: targets)
+                    for (dPlayer player : targets)
                         if (player.isValid() && player.isOnline()) players.add(player.getPlayerEntity());
                 }
-                PacketPlayOutWorldParticles o = new PacketPlayOutWorldParticles(particleEffect.effect, false, (float)location.getX(),
-                        (float)location.getY(), (float)location.getZ(), os, os, os, data.asFloat(), qty.asInt());
-                for (Player player: players) {
-                    ((CraftPlayer)player).getHandle().playerConnection.sendPacket(o);
+                PacketPlayOutWorldParticles o = new PacketPlayOutWorldParticles(particleEffect.effect, false, (float) location.getX(),
+                        (float) location.getY(), (float) location.getZ(), osX, osY, osZ, data.asFloat(), qty.asInt());
+                for (Player player : players) {
+                    ((CraftPlayer) player).getHandle().playerConnection.sendPacket(o);
                 }
             }
 
             // Play an iconcrack (item break) effect
             else {
-                float os = offset.asFloat();
+                float osX = (float) offset.getX();
+                float osY = (float) offset.getY();
+                float osZ = (float) offset.getZ();
                 List<Player> players = new ArrayList<Player>();
                 if (targets == null) {
                     float rad = radius.asFloat();
-                    for (Player player: location.getWorld().getPlayers()) {
+                    for (Player player : location.getWorld().getPlayers()) {
                         if (player.getLocation().distanceSquared(location) < rad * rad) {
                             players.add(player);
                         }
                     }
                 }
                 else {
-                    for (dPlayer player: targets)
+                    for (dPlayer player : targets)
                         if (player.isValid() && player.isOnline()) players.add(player.getPlayerEntity());
                 }
-                PacketPlayOutWorldParticles o = new PacketPlayOutWorldParticles(EnumParticle.ITEM_CRACK, false, (float)location.getX(),
-                        (float)location.getY(), (float)location.getZ(), os, os, os, data.asFloat(), qty.asInt(),
+                PacketPlayOutWorldParticles o = new PacketPlayOutWorldParticles(EnumParticle.ITEM_CRACK, false, (float) location.getX(),
+                        (float) location.getY(), (float) location.getZ(), osX, osY, osZ, data.asFloat(), qty.asInt(),
                         iconcrack.asInt(), iconcrack.asInt()); // TODO: ???
-                for (Player player: players) {
-                    ((CraftPlayer)player).getHandle().playerConnection.sendPacket(o);
+                for (Player player : players) {
+                    ((CraftPlayer) player).getHandle().playerConnection.sendPacket(o);
                 }
             }
         }

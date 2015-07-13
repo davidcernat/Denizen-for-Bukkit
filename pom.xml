@@ -7,15 +7,15 @@
     <groupId>net.aufdemrand</groupId>
     <artifactId>denizen</artifactId>
     <packaging>jar</packaging>
-    <version>0.9.6-SNAPSHOT</version>
+    <version>0.9.7-SNAPSHOT</version>
     <name>Denizen</name>
     <description>Scriptable Minecraft and Citizens2</description>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <craftbukkit.version>1.8-R0.1-SNAPSHOT</craftbukkit.version>
+        <craftbukkit.version>1.8.7-R0.1-SNAPSHOT</craftbukkit.version>
         <json.version>20090211</json.version>
-        <citizens.version>2.0.14-SNAPSHOT</citizens.version>
+        <citizens.version>2.0.16-SNAPSHOT</citizens.version>
         <build.number>Unknown</build.number>
         <BUILD_NUMBER>Unknown</BUILD_NUMBER>
     </properties>
@@ -24,7 +24,7 @@
     <repositories>
         <repository>
             <id>vault-repo</id>
-            <url>http://nexus.theyeticave.net/content/repositories/public/</url>
+            <url>http://nexus.theyeticave.net/content/repositories/pub_releases/</url>
         </repository>
         <repository>
             <id>bukkit-repo</id>
@@ -33,10 +33,6 @@
         <repository>
             <id>everything</id>
             <url>http://repo.citizensnpcs.co</url>
-        </repository>
-        <repository>
-            <id>comphenix-repo</id>
-            <url>http://repo.comphenix.net/content/groups/public</url>
         </repository>
     </repositories>
 
@@ -50,8 +46,8 @@
             <scope>provided</scope>
         </dependency>
         <dependency>
-            <groupId>org.bukkit</groupId>
-            <artifactId>craftbukkit</artifactId>
+            <groupId>org.spigotmc</groupId>
+            <artifactId>spigot</artifactId>
             <version>${craftbukkit.version}</version>
             <type>jar</type>
             <scope>provided</scope>
@@ -84,7 +80,7 @@
         <dependency>
             <groupId>net.milkbowl.vault</groupId>
             <artifactId>Vault</artifactId>
-            <version>1.4.2-SNAPSHOT</version>
+            <version>1.5.4</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
@@ -154,15 +150,15 @@
                             <goal>shade</goal>
                         </goals>
                         <configuration>
-<minimizeJar>true</minimizeJar>
-<filters>
-<filter>
-<artifact>net.aufdemrand:denizencore</artifact>
-<includes>
-<include>**</include>
-</includes>
-</filter>
-</filters>
+                            <minimizeJar>true</minimizeJar>
+                            <filters>
+                                <filter>
+                                    <artifact>net.aufdemrand:denizencore</artifact>
+                                    <includes>
+                                        <include>**</include>
+                                    </includes>
+                                </filter>
+                            </filters>
                         </configuration>
                     </execution>
                 </executions>

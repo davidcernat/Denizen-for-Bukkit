@@ -1,15 +1,21 @@
 package net.aufdemrand.denizen.npc.traits;
 
 import net.aufdemrand.denizen.Settings;
-import net.aufdemrand.denizen.objects.*;
+import net.aufdemrand.denizen.objects.dEntity;
+import net.aufdemrand.denizen.objects.dLocation;
+import net.aufdemrand.denizen.objects.dNPC;
+import net.aufdemrand.denizen.objects.dPlayer;
 import net.aufdemrand.denizen.tags.BukkitTagContext;
-import net.aufdemrand.denizen.tags.TagManager;
 import net.aufdemrand.denizen.utilities.DenizenAPI;
+import net.aufdemrand.denizencore.objects.Duration;
+import net.aufdemrand.denizencore.objects.Element;
+import net.aufdemrand.denizencore.objects.aH;
+import net.aufdemrand.denizencore.objects.dObject;
+import net.aufdemrand.denizencore.tags.TagManager;
 import net.citizensnpcs.api.CitizensAPI;
 import net.citizensnpcs.api.event.DespawnReason;
 import net.citizensnpcs.api.persistence.Persist;
 import net.citizensnpcs.api.trait.Trait;
-
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.entity.Entity;
@@ -34,7 +40,7 @@ public class HealthTrait extends Trait implements Listener {
 // @name Health Trait
 // @group NPC Traits
 // @description
-// By default, NPCs are invulnerable, unable to be damaged. If you want your NPC 
+// By default, NPCs are invulnerable, unable to be damaged. If you want your NPC
 // to be able to take damage, or use the left click as an interaction, it must
 // have the health trait. The Health trait is automatically enabled if you set
 // the damage trigger state to true.
@@ -83,7 +89,7 @@ public class HealthTrait extends Trait implements Listener {
     private String respawnDelay = Settings.healthTraitRespawnDelay();
 
     @Persist("respawnlocation")
-    private String respawnLocation =  "<npc.flag[respawn_location] || <npc.location>>";
+    private String respawnLocation = "<npc.flag[respawn_location] || <npc.location>>";
 
     // internal
     private dPlayer player = null;
@@ -141,7 +147,6 @@ public class HealthTrait extends Trait implements Listener {
     /**
      * Listens for spawn of an NPC and updates its health with the max health
      * information for this trait.
-     *
      */
     @Override
     public void onSpawn() {
@@ -155,10 +160,10 @@ public class HealthTrait extends Trait implements Listener {
                     Bukkit.getScheduler().cancelTask(void_watcher_task);
                     return;
                 }
-                if (npc.getBukkitEntity().getLocation().getY() < -1000) {
+                if (npc.getEntity().getLocation().getY() < -1000) {
                     npc.despawn(DespawnReason.DEATH);
                     if (respawn) {
-                        if (npc.isSpawned()) npc.getBukkitEntity().teleport(getRespawnLocation());
+                        if (npc.isSpawned()) npc.getEntity().teleport(getRespawnLocation());
                         else npc.spawn(getRespawnLocation());
                     }
                 }
@@ -175,21 +180,19 @@ public class HealthTrait extends Trait implements Listener {
      * Gets the current health of this NPC.
      *
      * @return current health points
-     *
      */
     public double getHealth() {
         if (!npc.isSpawned()) return 0;
-        else return npc.getBukkitEntity().getHealth();
+        else return ((LivingEntity) npc.getEntity()).getHealth();
     }
 
     /**
      * Sets the maximum health for this NPC. Default max is 20.
      *
      * @param newMax new maximum health
-     *
      */
     public void setMaxhealth(int newMax) {
-        npc.getBukkitEntity().setMaxHealth(newMax);
+        ((LivingEntity) npc.getEntity()).setMaxHealth(newMax);
     }
 
     /**
@@ -198,7 +201,7 @@ public class HealthTrait extends Trait implements Listener {
      * @return maximum health
      */
     public double getMaxhealth() {
-        return npc.getBukkitEntity().getMaxHealth();
+        return ((LivingEntity) npc.getEntity()).getMaxHealth();
     }
 
     /**
@@ -212,10 +215,9 @@ public class HealthTrait extends Trait implements Listener {
 
     /**
      * Sets the NPCs health to maximum.
-     *
      */
     public void setHealth() {
-        setHealth(npc.getBukkitEntity().getMaxHealth());
+        setHealth(((LivingEntity) npc.getEntity()).getMaxHealth());
     }
 
     /**
@@ -224,12 +226,12 @@ public class HealthTrait extends Trait implements Listener {
      * @param health total health points
      */
     public void setHealth(double health) {
-        if (npc.getBukkitEntity() != null)
-            npc.getBukkitEntity().setHealth(health);
+        if (npc.getEntity() != null)
+            ((LivingEntity) npc.getEntity()).setHealth(health);
     }
 
     public void die() {
-        npc.getBukkitEntity().damage(npc.getBukkitEntity().getHealth());
+        ((LivingEntity) npc.getEntity()).damage(((LivingEntity) npc.getEntity()).getHealth());
     }
 
     // Listen for deaths to clear drops
@@ -261,7 +263,7 @@ public class HealthTrait extends Trait implements Listener {
         // Don't use NPCDamageEvent because it doesn't work well
 
         // Check if the event pertains to this NPC
-        if (event.getEntity() != npc.getBukkitEntity() || dying) return;
+        if (event.getEntity() != npc.getEntity() || dying) return;
 
         // Make sure this is a killing blow
         if (this.getHealth() - event.getDamage() > 0)
@@ -271,7 +273,7 @@ public class HealthTrait extends Trait implements Listener {
         player = null;
 
         // Save entityId for EntityDeath event
-        entityId = npc.getBukkitEntity().getEntityId();
+        entityId = npc.getEntity().getEntityId();
 
         String deathCause = event.getCause().toString().toLowerCase().replace('_', ' ');
         Map<String, dObject> context = new HashMap<String, dObject>();
@@ -280,8 +282,7 @@ public class HealthTrait extends Trait implements Listener {
 
 
         // Check if the entity has been killed by another entity
-        if (event instanceof EntityDamageByEntityEvent)
-        {
+        if (event instanceof EntityDamageByEntityEvent) {
             Entity killerEntity = ((EntityDamageByEntityEvent) event).getDamager();
             context.put("killer", new dEntity(killerEntity));
 
@@ -292,8 +293,7 @@ public class HealthTrait extends Trait implements Listener {
 
                 // If the damager was a projectile, take its shooter into
                 // account as well
-            else if (killerEntity instanceof Projectile)
-            {
+            else if (killerEntity instanceof Projectile) {
                 ProjectileSource shooter = ((Projectile) killerEntity).getShooter();
                 if (shooter != null && shooter instanceof LivingEntity) {
 
@@ -313,8 +313,7 @@ public class HealthTrait extends Trait implements Listener {
 
         }
         // If not, check if the entity has been killed by a block
-        else if (event instanceof EntityDamageByBlockEvent)
-        {
+        else if (event instanceof EntityDamageByBlockEvent) {
             DenizenAPI.getDenizenNPC(npc).action("death by block", player, context);
 
             // TODO:
@@ -330,13 +329,13 @@ public class HealthTrait extends Trait implements Listener {
 
         // One of the actions above may have removed the NPC, so check if the
         // NPC's entity still exists before proceeding
-        if (npc.getBukkitEntity() == null)
+        if (npc.getEntity() == null)
             return;
 
         loc = dLocation.valueOf(TagManager.tag(respawnLocation, // TODO: debug option?
                 new BukkitTagContext(null, DenizenAPI.getDenizenNPC(npc), false, null, true, null)));
 
-        if (loc == null) loc = npc.getBukkitEntity().getLocation();
+        if (loc == null) loc = npc.getEntity().getLocation();
 
         if (animatedeath) {
             // Cancel navigation to keep the NPC from damaging players
@@ -345,7 +344,7 @@ public class HealthTrait extends Trait implements Listener {
             // Reset health now to avoid the death from happening instantly
             //setHealth();
             // Play animation (TODO)
-            // playDeathAnimation(npc.getBukkitEntity());
+            // playDeathAnimation(npc.getEntity());
 
         }
 
@@ -358,7 +357,7 @@ public class HealthTrait extends Trait implements Listener {
                             if (CitizensAPI.getNPCRegistry().getById(npc.getId()) == null || npc.isSpawned()) return;
                             else npc.spawn(loc);
                         }
-                    } , (Duration.valueOf(respawnDelay).getTicks()));
+                    }, (Duration.valueOf(respawnDelay).getTicks()));
         }
 
     }

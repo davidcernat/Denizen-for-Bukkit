@@ -1,9 +1,13 @@
 package net.aufdemrand.denizen.objects.properties.entity;
 
-import net.aufdemrand.denizen.objects.*;
-import net.aufdemrand.denizen.objects.properties.Property;
-import net.aufdemrand.denizen.tags.Attribute;
+import net.aufdemrand.denizen.objects.dEntity;
 import net.aufdemrand.denizen.utilities.entity.RabbitType;
+import net.aufdemrand.denizencore.objects.Element;
+import net.aufdemrand.denizencore.objects.Mechanism;
+import net.aufdemrand.denizencore.objects.dList;
+import net.aufdemrand.denizencore.objects.dObject;
+import net.aufdemrand.denizencore.objects.properties.Property;
+import net.aufdemrand.denizencore.tags.Attribute;
 import net.aufdemrand.denizencore.utilities.CoreUtilities;
 import org.bukkit.DyeColor;
 import org.bukkit.entity.*;
@@ -13,7 +17,7 @@ public class EntityColor implements Property {
 
     public static boolean describes(dObject entity) {
         if (!(entity instanceof dEntity)) return false;
-        EntityType type = ((dEntity) entity).getEntityType();
+        EntityType type = ((dEntity) entity).getBukkitEntityType();
         return type == EntityType.SHEEP ||
                 type == EntityType.HORSE ||
                 type == EntityType.WOLF ||
@@ -39,15 +43,15 @@ public class EntityColor implements Property {
     dEntity colored;
 
     private String getColor() {
-        EntityType type = colored.getEntityType();
+        EntityType type = colored.getBukkitEntityType();
 
         if (type == EntityType.HORSE)
-          return ((Horse) colored.getBukkitEntity()).getColor().name() + "|" +
-                  ((Horse) colored.getBukkitEntity()).getStyle().name() + "|" +
-                  ((Horse) colored.getBukkitEntity()).getVariant().name();
+            return ((Horse) colored.getBukkitEntity()).getColor().name() + "|" +
+                    ((Horse) colored.getBukkitEntity()).getStyle().name() + "|" +
+                    ((Horse) colored.getBukkitEntity()).getVariant().name();
 
         else if (type == EntityType.SHEEP)
-          return ((Sheep) colored.getBukkitEntity()).getColor().name();
+            return ((Sheep) colored.getBukkitEntity()).getColor().name();
 
         else if (type == EntityType.WOLF)
             return ((Wolf) colored.getBukkitEntity()).getCollarColor().name();
@@ -155,10 +159,10 @@ public class EntityColor implements Property {
         // -->
 
         if (mechanism.matches("color")) {
-            EntityType type = colored.getEntityType();
+            EntityType type = colored.getBukkitEntityType();
 
             if (type == EntityType.HORSE) {
-                    dList horse_info = mechanism.getValue().asType(dList.class);
+                dList horse_info = mechanism.getValue().asType(dList.class);
                 if (horse_info.size() > 0 && new Element(horse_info.get(0)).matchesEnum(Horse.Color.values()))
                     ((Horse) colored.getBukkitEntity())
                             .setColor(Horse.Color.valueOf(horse_info.get(0).toUpperCase()));

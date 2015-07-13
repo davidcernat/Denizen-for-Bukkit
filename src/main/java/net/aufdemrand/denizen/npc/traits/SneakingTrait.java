@@ -3,13 +3,12 @@ package net.aufdemrand.denizen.npc.traits;
 import net.aufdemrand.denizen.utilities.DenizenAPI;
 import net.citizensnpcs.api.persistence.Persist;
 import net.citizensnpcs.api.trait.Trait;
-import net.minecraft.server.v1_8_R1.EntityHuman;
-
-import org.bukkit.craftbukkit.v1_8_R1.entity.CraftPlayer;
+import net.minecraft.server.v1_8_R3.EntityHuman;
+import org.bukkit.craftbukkit.v1_8_R3.entity.CraftPlayer;
 import org.bukkit.entity.EntityType;
 import org.bukkit.event.Listener;
 
-public class SneakingTrait extends Trait implements Listener  {
+public class SneakingTrait extends Trait implements Listener {
 
     @Persist("sneaking")
     private boolean sneaking = false;
@@ -18,7 +17,7 @@ public class SneakingTrait extends Trait implements Listener  {
 
     @Override
     public void onSpawn() {
-        eh = ((CraftPlayer) npc.getBukkitEntity()).getHandle();
+        eh = ((CraftPlayer) npc.getEntity()).getHandle();
         if (sneaking) sneak();
     }
 
@@ -32,13 +31,14 @@ public class SneakingTrait extends Trait implements Listener  {
     // None
     //
     // -->
+
     /**
      * Makes the NPC sneak
      */
     public void sneak() {
         DenizenAPI.getDenizenNPC(npc).action("sneak", null);
 
-        if (npc.getBukkitEntity().getType() != EntityType.PLAYER) {
+        if (npc.getEntity().getType() != EntityType.PLAYER) {
             return;
         }
 

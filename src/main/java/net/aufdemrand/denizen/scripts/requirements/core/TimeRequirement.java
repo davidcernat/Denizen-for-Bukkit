@@ -3,13 +3,13 @@ package net.aufdemrand.denizen.scripts.requirements.core;
 import net.aufdemrand.denizen.exceptions.RequirementCheckException;
 import net.aufdemrand.denizen.scripts.requirements.AbstractRequirement;
 import net.aufdemrand.denizen.scripts.requirements.RequirementsContext;
-import net.aufdemrand.denizen.objects.aH;
+import net.aufdemrand.denizencore.objects.aH;
 
 import java.util.List;
 
-public class TimeRequirement extends AbstractRequirement{
+public class TimeRequirement extends AbstractRequirement {
 
-    private enum Time {DAWN, DAY, DUSK, NIGHT }
+    private enum Time {DAWN, DAY, DUSK, NIGHT}
 
 
     @Override
@@ -18,7 +18,7 @@ public class TimeRequirement extends AbstractRequirement{
         boolean outcome = false;
         Time time = null;
 
-        for (String arg : args){
+        for (String arg : args) {
             if (aH.matchesArg("DAWN, DAY, DUSK, NIGHT", arg)) time = Time.valueOf(arg.toUpperCase());
         }
 

@@ -1,10 +1,15 @@
 package net.aufdemrand.denizen.events.core;
 
-import net.aufdemrand.denizen.events.EventManager;
-import net.aufdemrand.denizen.events.SmartEvent;
-import net.aufdemrand.denizen.objects.*;
+import net.aufdemrand.denizen.objects.dCuboid;
+import net.aufdemrand.denizen.objects.dEntity;
+import net.aufdemrand.denizen.scripts.containers.core.BukkitWorldScriptHelper;
 import net.aufdemrand.denizen.utilities.DenizenAPI;
 import net.aufdemrand.denizen.utilities.debugging.dB;
+import net.aufdemrand.denizencore.events.OldSmartEvent;
+import net.aufdemrand.denizencore.objects.Element;
+import net.aufdemrand.denizencore.objects.aH;
+import net.aufdemrand.denizencore.objects.dList;
+import net.aufdemrand.denizencore.objects.dObject;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerCommandPreprocessEvent;
@@ -15,11 +20,12 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 
-public class CommandSmartEvent implements SmartEvent, Listener {
+public class CommandSmartEvent implements OldSmartEvent, Listener {
 
     class CommandHandlerData {
         public final String name;
         public final String event;
+
         public CommandHandlerData(String name, String event) {
             this.name = name;
             this.event = event;
@@ -86,7 +92,7 @@ public class CommandSmartEvent implements SmartEvent, Listener {
     private List<String> getAll(String cmd) {
         List<String> newEvents = new ArrayList<String>();
         cmd = cmd.toLowerCase();
-        for (CommandHandlerData chd: cmds) {
+        for (CommandHandlerData chd : cmds) {
             if (chd.name.equalsIgnoreCase(cmd)) {
                 newEvents.add(chd.event + " command");
             }
@@ -154,7 +160,7 @@ public class CommandSmartEvent implements SmartEvent, Listener {
     // <--[event]
     // @Events
     // command
-    // <command_name>|... command (in <notable cuboid>)
+    // <command_name>|... command (in <area>)
     //
     // @Regex on [^\s]+ command(in \w+)?
     //
@@ -165,7 +171,7 @@ public class CommandSmartEvent implements SmartEvent, Listener {
     // <context.raw_args> returns any args used as an Element.
     // <context.args> returns a dList of the arguments.
     // <context.server> returns true if the command was run from the console.
-    // <context.cuboids> returns a list of cuboids the player is in when using the command.
+    // <context.cuboids> DEPRECATED.
     //
     // @Determine
     // "FULFILLED" to tell Bukkit the command was handled.
@@ -190,7 +196,7 @@ public class CommandSmartEvent implements SmartEvent, Listener {
         dList cuboid_context = new dList();
         List<String> cuboidEvents = new ArrayList<String>();
         for (dCuboid cuboid : cuboids) {
-            for (String str: events) {
+            for (String str : events) {
                 cuboidEvents.add(str + " in " + cuboid.identifySimple());
             }
             cuboid_context.add(cuboid.identifySimple());
@@ -211,8 +217,8 @@ public class CommandSmartEvent implements SmartEvent, Listener {
         String determination;
 
         // Run any event scripts and get the determination.
-        determination = EventManager.doEvents(events,
-                null, new dPlayer(event.getPlayer()), context).toUpperCase();
+        determination = BukkitWorldScriptHelper.doEvents(events,
+                null, dEntity.getPlayerFrom(event.getPlayer()), context).toUpperCase();
 
         // If a script has determined fulfilled, cancel this event so the player doesn't
         // receive the default 'Invalid command' gibberish from bukkit.
@@ -246,7 +252,7 @@ public class CommandSmartEvent implements SmartEvent, Listener {
         context.put("raw_args", new Element((message.split(" ").length > 1 ? event.getCommand().split(" ", 2)[1] : "")));
         context.put("server", Element.TRUE);
 
-        String determination = EventManager.doEvents(events, null, null, context);
+        String determination = BukkitWorldScriptHelper.doEvents(events, null, null, context);
 
         if (determination.equalsIgnoreCase("FULFILLED") || determination.equalsIgnoreCase("CANCELLED"))
             event.setCommand("denizen do_nothing");

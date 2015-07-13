@@ -2,8 +2,8 @@ package net.aufdemrand.denizen.utilities.packets;
 
 import io.netty.buffer.Unpooled;
 import net.aufdemrand.denizen.utilities.debugging.dB;
-import net.minecraft.server.v1_8_R1.PacketDataSerializer;
-import net.minecraft.server.v1_8_R1.PacketPlayOutCustomPayload;
+import net.minecraft.server.v1_8_R3.PacketDataSerializer;
+import net.minecraft.server.v1_8_R3.PacketPlayOutCustomPayload;
 import org.bukkit.entity.Player;
 
 import java.lang.reflect.Field;
@@ -24,7 +24,8 @@ public class OpenBook {
         try {
             channel.set(customPayloadPacket, "MC|BOpen");
             packet_data.set(customPayloadPacket, new PacketDataSerializer(Unpooled.buffer()));
-        } catch (Exception e) {
+        }
+        catch (Exception e) {
             dB.echoError(e);
         }
         return customPayloadPacket;

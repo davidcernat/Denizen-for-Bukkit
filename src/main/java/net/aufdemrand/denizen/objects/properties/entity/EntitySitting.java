@@ -1,11 +1,11 @@
 package net.aufdemrand.denizen.objects.properties.entity;
 
-import net.aufdemrand.denizen.objects.Element;
-import net.aufdemrand.denizen.objects.Mechanism;
 import net.aufdemrand.denizen.objects.dEntity;
-import net.aufdemrand.denizen.objects.dObject;
-import net.aufdemrand.denizen.objects.properties.Property;
-import net.aufdemrand.denizen.tags.Attribute;
+import net.aufdemrand.denizencore.objects.Element;
+import net.aufdemrand.denizencore.objects.Mechanism;
+import net.aufdemrand.denizencore.objects.dObject;
+import net.aufdemrand.denizencore.objects.properties.Property;
+import net.aufdemrand.denizencore.tags.Attribute;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Ocelot;
 import org.bukkit.entity.Wolf;
@@ -14,8 +14,8 @@ public class EntitySitting implements Property {
 
     public static boolean describes(dObject entity) {
         return entity instanceof dEntity && (
-                ((dEntity)entity).getEntityType() == EntityType.WOLF
-                || ((dEntity)entity).getEntityType() == EntityType.OCELOT);
+                ((dEntity) entity).getBukkitEntityType() == EntityType.WOLF
+                        || ((dEntity) entity).getBukkitEntityType() == EntityType.OCELOT);
     }
 
     public static EntitySitting getFrom(dObject entity) {
@@ -40,14 +40,14 @@ public class EntitySitting implements Property {
 
     @Override
     public String getPropertyString() {
-        if (entity.getEntityType() == EntityType.WOLF) {
-            if (!((Wolf)entity.getBukkitEntity()).isSitting())
+        if (entity.getBukkitEntityType() == EntityType.WOLF) {
+            if (!((Wolf) entity.getBukkitEntity()).isSitting())
                 return null;
             else
                 return "true";
         }
         else {
-            if (!((Ocelot)entity.getBukkitEntity()).isSitting())
+            if (!((Ocelot) entity.getBukkitEntity()).isSitting())
                 return null;
             else
                 return "true";
@@ -77,11 +77,11 @@ public class EntitySitting implements Property {
         // If the entity is a wolf or ocelot, returns whether the animal is sitting.
         // -->
         if (attribute.startsWith("sitting")) {
-            if (entity.getEntityType() == EntityType.WOLF)
-                return new Element(((Wolf)entity.getBukkitEntity()).isSitting())
+            if (entity.getBukkitEntityType() == EntityType.WOLF)
+                return new Element(((Wolf) entity.getBukkitEntity()).isSitting())
                         .getAttribute(attribute.fulfill(1));
             else
-                return new Element(((Ocelot)entity.getBukkitEntity()).isSitting())
+                return new Element(((Ocelot) entity.getBukkitEntity()).isSitting())
                         .getAttribute(attribute.fulfill(1));
         }
 
@@ -102,10 +102,10 @@ public class EntitySitting implements Property {
         // -->
 
         if (mechanism.matches("sitting") && mechanism.requireBoolean()) {
-            if (entity.getEntityType() == EntityType.WOLF)
-                ((Wolf)entity.getBukkitEntity()).setSitting(mechanism.getValue().asBoolean());
+            if (entity.getBukkitEntityType() == EntityType.WOLF)
+                ((Wolf) entity.getBukkitEntity()).setSitting(mechanism.getValue().asBoolean());
             else
-                ((Ocelot)entity.getBukkitEntity()).setSitting(mechanism.getValue().asBoolean());
+                ((Ocelot) entity.getBukkitEntity()).setSitting(mechanism.getValue().asBoolean());
         }
     }
 }

@@ -4,7 +4,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.Server;
 import org.bukkit.conversations.Conversation;
 import org.bukkit.conversations.ConversationAbandonedEvent;
-import org.bukkit.craftbukkit.v1_8_R1.command.ColouredConsoleSender;
+import org.bukkit.craftbukkit.v1_8_R3.command.ColouredConsoleSender;
 import org.bukkit.permissions.Permission;
 import org.bukkit.permissions.PermissionAttachment;
 import org.bukkit.permissions.PermissionAttachmentInfo;
@@ -39,7 +39,7 @@ public class DenizenCommandSender extends ColouredConsoleSender {
 
     @Override
     public void sendMessage(String[] strings) {
-        for (String string: strings) {
+        for (String string : strings) {
             sendMessage(string);
         }
     }

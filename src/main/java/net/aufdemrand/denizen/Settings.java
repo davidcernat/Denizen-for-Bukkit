@@ -1,8 +1,7 @@
 package net.aufdemrand.denizen;
 
 import net.aufdemrand.denizen.utilities.DenizenAPI;
-import net.aufdemrand.denizen.objects.Duration;
-import net.aufdemrand.denizen.utilities.debugging.dB;
+import net.aufdemrand.denizencore.objects.Duration;
 
 public class Settings {
 
@@ -19,7 +18,7 @@ public class Settings {
 
     public static String getAlternateScriptPath() {
         return DenizenAPI.getCurrentInstance().getConfig()
-        .getString("Scripts location.Alternative folder path", "plugins/Denizen");
+                .getString("Scripts location.Alternative folder path", "plugins/Denizen");
     }
 
 
@@ -65,8 +64,14 @@ public class Settings {
                 .getString("Scripts.Queue speed", "0.5s");
 
         // Check for users setting delay to 0, which will in turn lock up the server
-        try { if (Double.valueOf(delay) < 1) delay = "1t"; }
-        catch (Exception e) { delay = "0.5s"; }
+        try {
+            if (Duration.valueOf(delay).getTicks() < 1) {
+                delay = "1t";
+            }
+        }
+        catch (Exception e) {
+            delay = "0.5s";
+        }
 
         return delay;
     }
@@ -90,7 +95,7 @@ public class Settings {
 
     public static boolean healthTraitRespawnEnabled() {
         return DenizenAPI.getCurrentInstance().getConfig()
-               .getBoolean("Traits.Health.Respawn.Enabled", true);
+                .getBoolean("Traits.Health.Respawn.Enabled", true);
     }
 
     /*
@@ -101,7 +106,7 @@ public class Settings {
 
     public static boolean healthTraitAnimatedDeathEnabled() {
         return DenizenAPI.getCurrentInstance().getConfig()
-               .getBoolean("Traits.Health.Animated death.Enabled", true);
+                .getBoolean("Traits.Health.Animated death.Enabled", true);
     }
 
     /*
@@ -112,7 +117,7 @@ public class Settings {
 
     public static String healthTraitRespawnDelay() {
         return DenizenAPI.getCurrentInstance().getConfig()
-               .getString("Traits.Health.Respawn.Delay", "10s");
+                .getString("Traits.Health.Respawn.Delay", "10s");
     }
 
     /*
@@ -211,12 +216,12 @@ public class Settings {
 
     public static boolean allowLogging() {
         return DenizenAPI.getCurrentInstance().getConfig()
-                .getBoolean("Commands.log.Allow logging", true);
+                .getBoolean("Commands.Log.Allow logging", true);
     }
 
     public static boolean allowStrangeYAMLSaves() {
         return DenizenAPI.getCurrentInstance().getConfig()
-                .getBoolean("Commands.yaml.Allow saving outside folder", false);
+                .getBoolean("Commands.Yaml.Allow saving outside folder", false);
     }
 
     public static String chatMultipleTargetsFormat() {
@@ -365,6 +370,16 @@ public class Settings {
 
     public static int pathfindingMaxDistance() {
         return DenizenAPI.getCurrentInstance().getConfig()
-                .getInt("Tags.Path fiding.Max distance", 100);
+                .getInt("Tags.Path finding.Max distance", 100);
+    }
+
+    public static int chatHistoryMaxMessages() {
+        return DenizenAPI.getCurrentInstance().getConfig()
+                .getInt("Tags.Chat history.Max messages", 10);
+    }
+
+    public static int tagTimeout() {
+        return DenizenAPI.getCurrentInstance().getConfig()
+                .getInt("Tags.Timeout", 10);
     }
 }

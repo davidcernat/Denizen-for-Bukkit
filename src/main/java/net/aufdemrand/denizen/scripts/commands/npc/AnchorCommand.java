@@ -1,30 +1,23 @@
 package net.aufdemrand.denizen.scripts.commands.npc;
 
 import net.aufdemrand.denizen.BukkitScriptEntryData;
-import net.aufdemrand.denizen.objects.Element;
+import net.aufdemrand.denizen.objects.dLocation;
+import net.aufdemrand.denizen.objects.dNPC;
+import net.aufdemrand.denizen.utilities.Utilities;
+import net.aufdemrand.denizen.utilities.debugging.dB;
 import net.aufdemrand.denizencore.exceptions.CommandExecutionException;
 import net.aufdemrand.denizencore.exceptions.InvalidArgumentsException;
-import net.aufdemrand.denizen.objects.dNPC;
-import net.aufdemrand.denizen.scripts.ScriptEntry;
-import net.aufdemrand.denizen.scripts.commands.AbstractCommand;
-import net.aufdemrand.denizen.utilities.Utilities;
-import net.aufdemrand.denizen.objects.dLocation;
-import net.aufdemrand.denizen.objects.aH;
-import net.aufdemrand.denizen.utilities.debugging.dB;
+import net.aufdemrand.denizencore.objects.Element;
+import net.aufdemrand.denizencore.objects.aH;
+import net.aufdemrand.denizencore.objects.aH.Argument;
+import net.aufdemrand.denizencore.scripts.ScriptEntry;
+import net.aufdemrand.denizencore.scripts.commands.AbstractCommand;
 import net.citizensnpcs.trait.Anchors;
 import net.citizensnpcs.util.Anchor;
 
-import static net.aufdemrand.denizen.objects.aH.Argument;
-
-/**
- * Controls a NPC's 'Anchors' trait.
- *
- * @author aufdemrand
- *
- */
 public class AnchorCommand extends AbstractCommand {
 
-    private enum Action { ADD, REMOVE, ASSUME, WALKTO, WALKNEAR }
+    private enum Action {ADD, REMOVE, ASSUME, WALKTO, WALKNEAR}
 
     @Override
     public void parseArgs(ScriptEntry scriptEntry) throws InvalidArgumentsException {
@@ -56,7 +49,7 @@ public class AnchorCommand extends AbstractCommand {
         }
 
         // Check required arguments
-        if (!((BukkitScriptEntryData)scriptEntry.entryData).hasNPC())
+        if (!((BukkitScriptEntryData) scriptEntry.entryData).hasNPC())
             throw new InvalidArgumentsException("NPC linked was missing or invalid.");
 
         if (!scriptEntry.hasObject("action"))
@@ -76,12 +69,12 @@ public class AnchorCommand extends AbstractCommand {
 
         // Report to dB
         dB.report(scriptEntry, getName(),
-                aH.debugObj("NPC", ((BukkitScriptEntryData)scriptEntry.entryData).getNPC().toString())
+                aH.debugObj("NPC", ((BukkitScriptEntryData) scriptEntry.entryData).getNPC().toString())
                         + action.name() + id.debug()
                         + (location != null ? location.debug() : "")
-                        + (range != null ? range.debug() : "" ));
+                        + (range != null ? range.debug() : ""));
 
-        dNPC npc = ((BukkitScriptEntryData)scriptEntry.entryData).getNPC();
+        dNPC npc = ((BukkitScriptEntryData) scriptEntry.entryData).getNPC();
 
         if (!npc.getCitizen().hasTrait(Anchors.class))
             npc.getCitizen().addTrait(Anchors.class);
@@ -92,8 +85,7 @@ public class AnchorCommand extends AbstractCommand {
                 npc.getCitizen().getTrait(Anchors.class).addAnchor(id.asString(), location);
                 return;
 
-            case ASSUME:
-            {
+            case ASSUME: {
                 Anchor n = npc.getCitizen().getTrait(Anchors.class)
                         .getAnchor(id.asString());
                 if (n == null)
@@ -101,10 +93,9 @@ public class AnchorCommand extends AbstractCommand {
                 else
                     npc.getEntity().teleport(n.getLocation());
             }
-                return;
+            return;
 
-            case WALKNEAR:
-            {
+            case WALKNEAR: {
                 Anchor n = npc.getCitizen().getTrait(Anchors.class)
                         .getAnchor(id.asString());
                 if (n == null)
@@ -113,12 +104,11 @@ public class AnchorCommand extends AbstractCommand {
                     dB.echoError(scriptEntry.getResidingQueue(), "Must specify a range!");
                 else
                     npc.getNavigator().setTarget(
-                        Utilities.getWalkableLocationNear(n.getLocation(), range.asInt()));
+                            Utilities.getWalkableLocationNear(n.getLocation(), range.asInt()));
             }
-                return;
+            return;
 
-            case WALKTO:
-            {
+            case WALKTO: {
                 Anchor n = npc.getCitizen().getTrait(Anchors.class)
                         .getAnchor(id.asString());
                 if (n == null)
@@ -126,10 +116,9 @@ public class AnchorCommand extends AbstractCommand {
                 else
                     npc.getNavigator().setTarget(n.getLocation());
             }
-                return;
+            return;
 
-            case REMOVE:
-            {
+            case REMOVE: {
                 Anchor n = npc.getCitizen().getTrait(Anchors.class)
                         .getAnchor(id.asString());
                 if (n == null)

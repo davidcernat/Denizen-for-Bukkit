@@ -1,10 +1,11 @@
 package net.aufdemrand.denizen.tags.core;
 
 import net.aufdemrand.denizen.Denizen;
-import net.aufdemrand.denizen.tags.ReplaceableTagEvent;
-import net.aufdemrand.denizen.objects.Element;
-import net.aufdemrand.denizen.tags.Attribute;
-import net.aufdemrand.denizen.tags.TagManager;
+import net.aufdemrand.denizencore.objects.Element;
+import net.aufdemrand.denizencore.tags.Attribute;
+import net.aufdemrand.denizencore.tags.ReplaceableTagEvent;
+import net.aufdemrand.denizencore.tags.TagManager;
+import net.aufdemrand.denizencore.utilities.CoreUtilities;
 import org.bukkit.ChatColor;
 import org.bukkit.event.Listener;
 
@@ -80,8 +81,8 @@ public class TextTags implements Listener {
 
 
     // Thanks geckon :)
-    final String[] code = {"0","1","2","3","4","5","6","7","8","9"
-            ,"a","b","c","d","e","f","k","l","m","n","o","r"};
+    final String[] code = {"0", "1", "2", "3", "4", "5", "6", "7", "8", "9"
+            , "a", "b", "c", "d", "e", "f", "k", "l", "m", "n", "o", "r"};
 
     // <--[tag]
     // @attribute <&0>
@@ -410,6 +411,7 @@ public class TextTags implements Listener {
     @TagManager.TagEvents
     public void specialCharacterTags(ReplaceableTagEvent event) {
         if (!event.getName().startsWith("&")) return;
+        String lower = CoreUtilities.toLowerCase(event.getName());
         Attribute attribute = event.getAttributes();
 
         // <--[tag]
@@ -418,7 +420,7 @@ public class TextTags implements Listener {
         // @description
         // Returns a newline symbol.
         // -->
-        if (event.getName().equalsIgnoreCase("&nl"))
+        if (lower.equals("&nl"))
             event.setReplaced(new Element("\n").getAttribute(attribute.fulfill(1)));
 
             // <--[tag]
@@ -427,7 +429,7 @@ public class TextTags implements Listener {
             // @description
             // Returns an ampersand symbol: &
             // -->
-        else if (event.getName().equalsIgnoreCase("&amp"))
+        else if (lower.equals("&amp"))
             event.setReplaced(new Element("&").getAttribute(attribute.fulfill(1)));
 
             // <--[tag]
@@ -436,7 +438,7 @@ public class TextTags implements Listener {
             // @description
             // Returns a comma symbol: ,
             // -->
-        else if (event.getName().equalsIgnoreCase("&cm"))
+        else if (lower.equals("&cm"))
             event.setReplaced(new Element(",").getAttribute(attribute.fulfill(1)));
 
             // <--[tag]
@@ -445,7 +447,7 @@ public class TextTags implements Listener {
             // @description
             // Returns an internal coloring symbol: §
             // -->
-        else if (event.getName().equalsIgnoreCase("&ss"))
+        else if (lower.equals("&ss"))
             event.setReplaced(new Element("§").getAttribute(attribute.fulfill(1)));
 
             // <--[tag]
@@ -454,7 +456,7 @@ public class TextTags implements Listener {
             // @description
             // Returns a single-quote symbol: '
             // -->
-        else if (event.getName().equalsIgnoreCase("&sq"))
+        else if (lower.equals("&sq"))
             event.setReplaced(new Element("'").getAttribute(attribute.fulfill(1)));
 
             // <--[tag]
@@ -463,8 +465,8 @@ public class TextTags implements Listener {
             // @description
             // Returns a non-breaking space symbol.
             // -->
-        else if (event.getName().equalsIgnoreCase("&sp"))
-            event.setReplaced(new Element(String.valueOf((char)0x00A0)).getAttribute(attribute.fulfill(1)));
+        else if (lower.equals("&sp"))
+            event.setReplaced(new Element(String.valueOf((char) 0x00A0)).getAttribute(attribute.fulfill(1)));
 
             // <--[tag]
             // @attribute <&dq>
@@ -472,7 +474,7 @@ public class TextTags implements Listener {
             // @description
             // Returns a double-quote symbol: "
             // -->
-        else if (event.getName().equalsIgnoreCase("&dq"))
+        else if (lower.equals("&dq"))
             event.setReplaced(new Element("\"").getAttribute(attribute.fulfill(1)));
 
             // <--[tag]
@@ -481,7 +483,7 @@ public class TextTags implements Listener {
             // @description
             // Returns a colon symbol: :
             // -->
-        else if (event.getName().equalsIgnoreCase("&co"))
+        else if (lower.equals("&co"))
             event.setReplaced(new Element(":").getAttribute(attribute.fulfill(1)));
 
             // <--[tag]
@@ -490,8 +492,8 @@ public class TextTags implements Listener {
             // @description
             // Returns a semicolon symbol: ;
             // -->
-        else if (event.getName().equalsIgnoreCase("&sc"))
-            event.setReplaced(new Element(String.valueOf((char)0x2011)).getAttribute(attribute.fulfill(1)));
+        else if (lower.equals("&sc"))
+            event.setReplaced(new Element(String.valueOf((char) 0x2011)).getAttribute(attribute.fulfill(1)));
 
             // <--[tag]
             // @attribute <&rb>
@@ -499,7 +501,7 @@ public class TextTags implements Listener {
             // @description
             // Returns a right-bracket symbol: ]
             // -->
-        else if (event.getName().equalsIgnoreCase("&rb"))
+        else if (lower.equals("&rb"))
             event.setReplaced(new Element("]").getAttribute(attribute.fulfill(1)));
 
             // <--[tag]
@@ -508,7 +510,7 @@ public class TextTags implements Listener {
             // @description
             // Returns a left-bracket symbol: [
             // -->
-        else if (event.getName().equalsIgnoreCase("&lb"))
+        else if (lower.equals("&lb"))
             event.setReplaced(new Element("[").getAttribute(attribute.fulfill(1)));
 
             // <--[tag]
@@ -517,7 +519,7 @@ public class TextTags implements Listener {
             // @description
             // Returns a right-brace symbol: }
             // -->
-        else if (event.getName().equalsIgnoreCase("&rc"))
+        else if (lower.equals("&rc"))
             event.setReplaced(new Element("}").getAttribute(attribute.fulfill(1)));
 
             // <--[tag]
@@ -526,7 +528,7 @@ public class TextTags implements Listener {
             // @description
             // Returns a left-brace symbol: {
             // -->
-        else if (event.getName().equalsIgnoreCase("&lc"))
+        else if (lower.equals("&lc"))
             event.setReplaced(new Element("{").getAttribute(attribute.fulfill(1)));
 
             // <--[tag]
@@ -535,7 +537,7 @@ public class TextTags implements Listener {
             // @description
             // Returns a hash symbol: #
             // -->
-        else if (event.getName().equalsIgnoreCase("&ns"))
+        else if (lower.equals("&ns"))
             event.setReplaced(new Element("#").getAttribute(attribute.fulfill(1)));
 
             // <--[tag]
@@ -544,7 +546,7 @@ public class TextTags implements Listener {
             // @description
             // Returns a percent symbol: %
             // -->
-        else if (event.getName().equalsIgnoreCase("&pc"))
+        else if (lower.equals("&pc"))
             event.setReplaced(new Element("%").getAttribute(attribute.fulfill(1)));
 
             // <--[tag]
@@ -553,7 +555,7 @@ public class TextTags implements Listener {
             // @description
             // Returns a pipe symbol: |
             // -->
-        else if (event.getName().equalsIgnoreCase("&pipe"))
+        else if (lower.equals("&pipe"))
             event.setReplaced(new Element("|").getAttribute(attribute.fulfill(1)));
 
             // <--[tag]
@@ -562,7 +564,7 @@ public class TextTags implements Listener {
             // @description
             // Returns a dollar sign: $
             // -->
-        else if (event.getName().equalsIgnoreCase("&ds"))
+        else if (lower.equals("&ds"))
             event.setReplaced(new Element("$").getAttribute(attribute.fulfill(1)));
 
             // <--[tag]
@@ -571,8 +573,8 @@ public class TextTags implements Listener {
             // @description
             // Returns a less than symbol: <
             // -->
-        else if (event.getName().equalsIgnoreCase("&lt"))
-            event.setReplaced(new Element(String.valueOf((char)0x01)).getAttribute(attribute.fulfill(1)));
+        else if (lower.equals("&lt"))
+            event.setReplaced(new Element(String.valueOf((char) 0x01)).getAttribute(attribute.fulfill(1)));
 
             // <--[tag]
             // @attribute <&gt>
@@ -580,8 +582,8 @@ public class TextTags implements Listener {
             // @description
             // Returns a greater than symbol: >
             // -->
-        else if (event.getName().equalsIgnoreCase("&gt"))
-            event.setReplaced(new Element(String.valueOf((char)0x02)).getAttribute(attribute.fulfill(1)));
+        else if (lower.equals("&gt"))
+            event.setReplaced(new Element(String.valueOf((char) 0x02)).getAttribute(attribute.fulfill(1)));
 
             // <--[tag]
             // @attribute <&bs>
@@ -589,7 +591,7 @@ public class TextTags implements Listener {
             // @description
             // Returns a backslash symbol: \
             // -->
-        else if (event.getName().equalsIgnoreCase("&bs"))
+        else if (lower.equals("&bs"))
             event.setReplaced(new Element("\\").getAttribute(attribute.fulfill(1)));
 
             // <--[tag]
@@ -598,7 +600,7 @@ public class TextTags implements Listener {
             // @description
             // Returns an at symbol: @
             // -->
-        else if (event.getName().equalsIgnoreCase("&at"))
+        else if (lower.equals("&at"))
             event.setReplaced(new Element("@").getAttribute(attribute.fulfill(1)));
 
             // <--[tag]
@@ -607,16 +609,16 @@ public class TextTags implements Listener {
             // @description
             // Returns a dot symbol: .
             // -->
-        else if (event.getName().equalsIgnoreCase("&dot"))
+        else if (lower.equals("&dot"))
             event.setReplaced(new Element(".").getAttribute(attribute.fulfill(1)));
 
-        // <--[tag]
-        // @attribute <&hrt>
-        // @returns Element
-        // @description
-        // Returns a heart symbol: ♥
-        // -->
-        else if (event.getName().equalsIgnoreCase("&hrt"))
+            // <--[tag]
+            // @attribute <&hrt>
+            // @returns Element
+            // @description
+            // Returns a heart symbol: ♥
+            // -->
+        else if (lower.equals("&hrt"))
             event.setReplaced(new Element("\u2665").getAttribute(attribute.fulfill(1)));
 
         // <--[tag]
@@ -626,7 +628,7 @@ public class TextTags implements Listener {
         // Returns the character specified.
         // -->
         if (attribute.startsWith("&chr") && attribute.hasContext(1))
-            event.setReplaced(String.valueOf((char)Integer.parseInt(attribute.getContext(1), 16)));
+            event.setReplaced(String.valueOf((char) Integer.parseInt(attribute.getContext(1), 16)));
 
     }
 }

@@ -1,11 +1,11 @@
 package net.aufdemrand.denizen.objects.properties.item;
 
-import net.aufdemrand.denizen.objects.Element;
-import net.aufdemrand.denizen.objects.Mechanism;
 import net.aufdemrand.denizen.objects.dItem;
-import net.aufdemrand.denizen.objects.dObject;
-import net.aufdemrand.denizen.objects.properties.Property;
-import net.aufdemrand.denizen.tags.Attribute;
+import net.aufdemrand.denizencore.objects.Element;
+import net.aufdemrand.denizencore.objects.Mechanism;
+import net.aufdemrand.denizencore.objects.dObject;
+import net.aufdemrand.denizencore.objects.properties.Property;
+import net.aufdemrand.denizencore.tags.Attribute;
 
 public class ItemQuantity implements Property {
 
@@ -16,7 +16,7 @@ public class ItemQuantity implements Property {
 
     public static ItemQuantity getFrom(dObject _item) {
         if (!describes(_item)) return null;
-        else return new ItemQuantity((dItem)_item);
+        else return new ItemQuantity((dItem) _item);
     }
 
 

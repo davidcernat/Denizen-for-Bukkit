@@ -1,18 +1,17 @@
 package net.aufdemrand.denizen.objects;
 
-import net.aufdemrand.denizen.objects.properties.Property;
-import net.aufdemrand.denizen.objects.properties.PropertyParser;
-import net.aufdemrand.denizen.tags.Attribute;
 import net.aufdemrand.denizen.utilities.debugging.dB;
-import net.aufdemrand.denizen.utilities.depends.Depends;
+import net.aufdemrand.denizencore.objects.*;
+import net.aufdemrand.denizencore.objects.properties.Property;
+import net.aufdemrand.denizencore.objects.properties.PropertyParser;
+import net.aufdemrand.denizencore.tags.Attribute;
+import net.aufdemrand.denizencore.tags.TagContext;
 import net.aufdemrand.denizencore.utilities.CoreUtilities;
-import net.citizensnpcs.api.CitizensAPI;
-
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
 import org.bukkit.Difficulty;
 import org.bukkit.World;
-import org.bukkit.craftbukkit.v1_8_R1.CraftChunk;
+import org.bukkit.craftbukkit.v1_8_R3.CraftChunk;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 
@@ -51,9 +50,14 @@ public class dWorld implements dObject, Adjustable {
     // World names are case insensitive.
     // -->
 
-    @Fetchable("w")
+
     public static dWorld valueOf(String string) {
-        return valueOf(string, true);
+        return valueOf(string, null);
+    }
+
+    @Fetchable("w")
+    public static dWorld valueOf(String string, TagContext context) {
+        return valueOf(string, context == null || context.debug);
     }
 
     public static dWorld valueOf(String string, boolean announce) {
@@ -235,7 +239,7 @@ public class dWorld implements dObject, Adjustable {
             ArrayList<dPlayer> players = new ArrayList<dPlayer>();
 
             for (Player player : getWorld().getPlayers()) {
-                if (Depends.citizens == null || !CitizensAPI.getNPCRegistry().isNPC(player))
+                if (!dEntity.isNPC(player))
                     players.add(new dPlayer(player));
             }
 
@@ -441,7 +445,7 @@ public class dWorld implements dObject, Adjustable {
         // Returns the world's ticks per animal spawn value.
         // -->
         if (attribute.startsWith("ticks_per_animal_spawn"))
-            return new Duration(getWorld().getTicksPerAnimalSpawns() )
+            return new Duration(getWorld().getTicksPerAnimalSpawns())
                     .getAttribute(attribute.fulfill(1));
 
         // <--[tag]
@@ -451,7 +455,7 @@ public class dWorld implements dObject, Adjustable {
         // Returns the world's ticks per monster spawn value.
         // -->
         if (attribute.startsWith("ticks_per_monster_spawn"))
-            return new Duration(getWorld().getTicksPerMonsterSpawns() )
+            return new Duration(getWorld().getTicksPerMonsterSpawns())
                     .getAttribute(attribute.fulfill(1));
 
         // <--[tag]
@@ -494,9 +498,21 @@ public class dWorld implements dObject, Adjustable {
         // @description
         // Returns the in-game time of this world.
         // -->
-        if (attribute.startsWith("time.full"))
+        if (attribute.startsWith("time.full")) {
             return new Element(getWorld().getFullTime())
+                    .getAttribute(attribute.fulfill(2));
+        }
+
+        // <--[tag]
+        // @attribute <w@world.time.duration>
+        // @returns Durations
+        // @description
+        // Returns the relative in-game time of this world as a duration.
+        // -->
+        if (attribute.startsWith("time.duration")) {
+            return new Duration(getWorld().getTime())
                     .getAttribute(attribute.fulfill(1));
+        }
 
         // <--[tag]
         // @attribute <w@world.time>
@@ -504,9 +520,10 @@ public class dWorld implements dObject, Adjustable {
         // @description
         // Returns the relative in-game time of this world.
         // -->
-        if (attribute.startsWith("time"))
+        if (attribute.startsWith("time")) {
             return new Element(getWorld().getTime())
                     .getAttribute(attribute.fulfill(1));
+        }
 
         // <--[tag]
         // @attribute <w@world.moon_phase>
@@ -515,9 +532,10 @@ public class dWorld implements dObject, Adjustable {
         // returns the current phase of the moon, as an integer from 1 to 8.
         // -->
         if (attribute.startsWith("moon_phase")
-                || attribute.startsWith("moonphase"))
-            return new Element((int)((getWorld().getFullTime() / 24000) % 8) + 1)
+                || attribute.startsWith("moonphase")) {
+            return new Element((int) ((getWorld().getFullTime() / 24000) % 8) + 1)
                     .getAttribute(attribute.fulfill(1));
+        }
 
 
         /////////////////////
@@ -530,9 +548,10 @@ public class dWorld implements dObject, Adjustable {
         // @description
         // returns whether there is currently a storm in this world.
         // -->
-        if (attribute.startsWith("has_storm"))
+        if (attribute.startsWith("has_storm")) {
             return new Element(getWorld().hasStorm())
                     .getAttribute(attribute.fulfill(1));
+        }
 
         // <--[tag]
         // @attribute <w@world.thunder_duration>
@@ -540,9 +559,10 @@ public class dWorld implements dObject, Adjustable {
         // @description
         // Returns the duration of thunder.
         // -->
-        if (attribute.startsWith("thunder_duration"))
+        if (attribute.startsWith("thunder_duration")) {
             return new Duration((long) getWorld().getThunderDuration())
                     .getAttribute(attribute.fulfill(1));
+        }
 
         // <--[tag]
         // @attribute <w@world.thundering>
@@ -550,9 +570,10 @@ public class dWorld implements dObject, Adjustable {
         // @description
         // Returns whether it is currently thundering in this world.
         // -->
-        if (attribute.startsWith("thundering"))
+        if (attribute.startsWith("thundering")) {
             return new Element(getWorld().isThundering())
                     .getAttribute(attribute.fulfill(1));
+        }
 
         // <--[tag]
         // @attribute <w@world.weather_duration>
@@ -560,9 +581,10 @@ public class dWorld implements dObject, Adjustable {
         // @description
         // Returns the duration of storms.
         // -->
-        if (attribute.startsWith("weather_duration"))
+        if (attribute.startsWith("weather_duration")) {
             return new Duration((long) getWorld().getWeatherDuration())
                     .getAttribute(attribute.fulfill(1));
+        }
 
         // <--[tag]
         // @attribute <w@world.type>
@@ -655,6 +677,19 @@ public class dWorld implements dObject, Adjustable {
             }
             if (diff != null)
                 getWorld().setDifficulty(diff);
+        }
+
+        // <--[mechanism]
+        // @object dWorld
+        // @name force_unload
+        // @input None
+        // @description
+        // Unloads the world from the server without saving chunks.
+        // @tags
+        // None
+        // -->
+        if (mechanism.matches("force_unload")) {
+            Bukkit.getServer().unloadWorld(getWorld(), false);
         }
 
         // <--[mechanism]
@@ -799,6 +834,19 @@ public class dWorld implements dObject, Adjustable {
         // -->
         if (mechanism.matches("time") && mechanism.requireInteger()) {
             getWorld().setTime(value.asInt());
+        }
+
+        // <--[mechanism]
+        // @object dWorld
+        // @name unload
+        // @input None
+        // @description
+        // Unloads the world from the server and saves chunks.
+        // @tags
+        // None
+        // -->
+        if (mechanism.matches("unload")) {
+            Bukkit.getServer().unloadWorld(getWorld(), true);
         }
 
         // <--[mechanism]

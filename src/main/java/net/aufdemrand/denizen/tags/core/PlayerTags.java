@@ -1,13 +1,14 @@
 package net.aufdemrand.denizen.tags.core;
 
 import net.aufdemrand.denizen.Denizen;
+import net.aufdemrand.denizen.Settings;
+import net.aufdemrand.denizen.objects.dPlayer;
 import net.aufdemrand.denizen.tags.BukkitTagContext;
-import net.aufdemrand.denizen.tags.ReplaceableTagEvent;
-import net.aufdemrand.denizen.tags.Attribute;
-import net.aufdemrand.denizen.objects.*;
-import net.aufdemrand.denizen.tags.TagManager;
 import net.aufdemrand.denizen.utilities.DenizenAPI;
 import net.aufdemrand.denizen.utilities.debugging.dB;
+import net.aufdemrand.denizencore.tags.Attribute;
+import net.aufdemrand.denizencore.tags.ReplaceableTagEvent;
+import net.aufdemrand.denizencore.tags.TagManager;
 import org.bukkit.Bukkit;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -34,21 +35,23 @@ public class PlayerTags implements Listener {
 
     @EventHandler(priority = EventPriority.MONITOR)
     public void addMessage(final AsyncPlayerChatEvent event) {
-        Bukkit.getScheduler().runTaskLater(DenizenAPI.getCurrentInstance(), new Runnable() {
-            @Override
-            public void run() {
-                List<String> history = playerChatHistory.get(event.getPlayer().getName());
-                // If history hasn't been started for this player, initialize a new ArrayList
-                if (history == null) history = new ArrayList<String>();
-                // Maximum history size is 10
-                // TODO: Make size configurable
-                if (history.size() > 10) history.remove(9);
-                // Add message to history
-                history.add(0, event.getMessage());
-                // Store the new history
-                playerChatHistory.put(event.getPlayer().getName(), history);
-            }
-        }, 1);
+        final int maxSize = Settings.chatHistoryMaxMessages();
+        if (maxSize > 0) {
+            Bukkit.getScheduler().runTaskLater(DenizenAPI.getCurrentInstance(), new Runnable() {
+                @Override
+                public void run() {
+                    List<String> history = playerChatHistory.get(event.getPlayer().getName());
+                    // If history hasn't been started for this player, initialize a new ArrayList
+                    if (history == null) history = new ArrayList<String>();
+                    // Maximum history size is specified by config.yml
+                    if (history.size() > maxSize) history.remove(maxSize - 1);
+                    // Add message to history
+                    history.add(0, event.getMessage());
+                    // Store the new history
+                    playerChatHistory.put(event.getPlayer().getName(), history);
+                }
+            }, 1);
+        }
     }
 
 
@@ -65,7 +68,7 @@ public class PlayerTags implements Listener {
         Attribute attribute = event.getAttributes();
 
         // PlayerTags require a... dPlayer!
-        dPlayer p = ((BukkitTagContext)event.getContext()).player;
+        dPlayer p = ((BukkitTagContext) event.getContext()).player;
 
         // Player tag may specify a new player in the <player[context]...> portion of the tag.
         if (attribute.hasContext(1))

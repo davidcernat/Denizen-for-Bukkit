@@ -1,11 +1,16 @@
 package net.aufdemrand.denizen.events.core;
 
-import net.aufdemrand.denizen.events.EventManager;
-import net.aufdemrand.denizen.events.SmartEvent;
-import net.aufdemrand.denizen.objects.*;
+import net.aufdemrand.denizen.objects.dEntity;
+import net.aufdemrand.denizen.objects.dItem;
+import net.aufdemrand.denizen.objects.dMaterial;
+import net.aufdemrand.denizen.objects.dPlayer;
+import net.aufdemrand.denizen.scripts.containers.core.BukkitWorldScriptHelper;
 import net.aufdemrand.denizen.utilities.DenizenAPI;
 import net.aufdemrand.denizen.utilities.Utilities;
 import net.aufdemrand.denizen.utilities.debugging.dB;
+import net.aufdemrand.denizencore.events.OldSmartEvent;
+import net.aufdemrand.denizencore.objects.Element;
+import net.aufdemrand.denizencore.objects.dObject;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
@@ -33,7 +38,7 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class PlayerEquipsArmorSmartEvent implements SmartEvent, Listener {
+public class PlayerEquipsArmorSmartEvent implements OldSmartEvent, Listener {
 
 
     ///////////////////
@@ -104,7 +109,7 @@ public class PlayerEquipsArmorSmartEvent implements SmartEvent, Listener {
 
         if (isArmor(item)) {
             for (final Player player : location.getWorld().getPlayers()) {
-                if (Utilities.checkLocation(player, location, 2.5)) {
+                if (!dEntity.isNPC(player) && Utilities.checkLocation(player, location, 2.5)) {
                     final ItemStack[] armor_contents = player.getInventory().getArmorContents().clone();
                     final Vector velocity = event.getVelocity();
                     new BukkitRunnable() {
@@ -133,11 +138,14 @@ public class PlayerEquipsArmorSmartEvent implements SmartEvent, Listener {
 
     @EventHandler
     public void inventoryClick(InventoryClickEvent event) {
+        dPlayer pl = dEntity.getPlayerFrom(event.getWhoClicked());
+        if (pl == null)
+            return;
+        final Player player = pl.getPlayerEntity();
         Inventory inventory = event.getInventory();
-        if (!didPlayerClickOwnInventory((Player) event.getWhoClicked(), inventory))
+        if (!didPlayerClickOwnInventory(player, inventory))
             return;
         ItemStack item = event.getCurrentItem();
-        Player player = (Player) inventory.getHolder();
         ItemStack cursor = event.getCursor();
         if (event.getSlotType() == InventoryType.SlotType.ARMOR) {
             if (item != null && item.getType() != Material.AIR
@@ -150,16 +158,14 @@ public class PlayerEquipsArmorSmartEvent implements SmartEvent, Listener {
             if (cursor != null && cursor.getType() != Material.AIR && isArmor(cursor)) {
                 if (playerEquipsArmorEvent(player, cursor, "INVENTORY")) {
                     event.setCancelled(true);
-                    return;
                 }
             }
         }
         else if (event.getClick().isShiftClick() && item != null && isArmor(item)) {
-            ItemStack currentItem = player.getInventory().getArmorContents()[getArmorTypeNumber(item)];
+            ItemStack currentItem = player.getInventory().getArmorContents()[3 - getArmorTypeNumber(item)];
             if (currentItem == null || currentItem.getType() == Material.AIR) {
                 if (playerEquipsArmorEvent(player, item, "INVENTORY")) {
                     event.setCancelled(true);
-                    return;
                 }
             }
         }
@@ -167,16 +173,19 @@ public class PlayerEquipsArmorSmartEvent implements SmartEvent, Listener {
 
     @EventHandler
     public void inventoryDrag(InventoryDragEvent event) {
+        dPlayer pl = dEntity.getPlayerFrom(event.getWhoClicked());
+        if (pl == null)
+            return;
+        final Player player = pl.getPlayerEntity();
         Inventory inventory = event.getInventory();
-        if (!didPlayerClickOwnInventory((Player) event.getWhoClicked(), inventory))
+        if (!didPlayerClickOwnInventory(player, inventory))
             return;
         ItemStack item = event.getOldCursor();
-        Player player = (Player) inventory.getHolder();
         if (!isArmor(item)) return;
-        int[] armor_slots = new int[]{5,6,7,8};
+        int[] armor_slots = new int[]{5, 6, 7, 8};
         Set<Integer> slots = event.getRawSlots();
         for (int slot : armor_slots) {
-            if (slots.contains(slot) && (slot-5 == getArmorTypeNumber(item))) {
+            if (slots.contains(slot) && (slot - 5 == getArmorTypeNumber(item))) {
                 ItemStack before = inventory.getItem(slot);
                 if (before == null || before.getType() == Material.AIR) {
                     if (playerEquipsArmorEvent(player, item, "INVENTORY")) {
@@ -190,6 +199,10 @@ public class PlayerEquipsArmorSmartEvent implements SmartEvent, Listener {
 
     @EventHandler
     public void playerInteract(PlayerInteractEvent event) {
+        dPlayer pl = dEntity.getPlayerFrom(event.getPlayer());
+        if (pl == null)
+            return;
+        final Player player = pl.getPlayerEntity();
         if (event.hasItem()) {
             ItemStack item = event.getItem();
             Action action = event.getAction();
@@ -197,12 +210,10 @@ public class PlayerEquipsArmorSmartEvent implements SmartEvent, Listener {
             if ((action != Action.RIGHT_CLICK_AIR && action != Action.RIGHT_CLICK_BLOCK)
                     || !isArmor(item) || (clicked != null && isInteractive(clicked.getType())))
                 return;
-            ItemStack currentItem = event.getPlayer().getInventory().getArmorContents()[getArmorTypeNumber(item)];
+            ItemStack currentItem = event.getPlayer().getInventory().getArmorContents()[3 - getArmorTypeNumber(item)];
             if (currentItem == null || currentItem.getType() == Material.AIR) {
-                Player player = event.getPlayer();
                 if (playerEquipsArmorEvent(player, item, "INTERACT")) {
                     event.setCancelled(true);
-                    return;
                 }
             }
         }
@@ -211,13 +222,16 @@ public class PlayerEquipsArmorSmartEvent implements SmartEvent, Listener {
     @EventHandler
     public void entityDamage(EntityDamageEvent event) {
         Entity entity = event.getEntity();
-        if (!(entity instanceof Player))
+        dPlayer pl = dEntity.getPlayerFrom(entity);
+        if (pl == null)
             return;
-        final Player player = (Player) entity;
+        final Player player = pl.getPlayerEntity();
         final ItemStack[] oldArmor = player.getInventory().getArmorContents();
         new BukkitRunnable() {
             @Override
             public void run() {
+                if (!player.isValid() || player.isDead())
+                    return;
                 ItemStack[] newArmor = player.getInventory().getArmorContents();
                 for (int i = 0; i < 4; i++) {
                     ItemStack o = oldArmor[i];
@@ -255,9 +269,9 @@ public class PlayerEquipsArmorSmartEvent implements SmartEvent, Listener {
     }
 
     private int getArmorTypeNumber(ItemStack itemStack) {
-        return (itemStack.getTypeId()-298)%4;
+        return (itemStack.getTypeId() - 298) % 4;
     }
-    
+
     private String getArmorType(ItemStack itemStack) {
         if (!isArmor(itemStack))
             return "helmet";
@@ -339,12 +353,12 @@ public class PlayerEquipsArmorSmartEvent implements SmartEvent, Listener {
         context.put("armor", armor);
         context.put("reason", new Element(reason));
 
-        String determination = EventManager.doEvents(Arrays.asList
+        String determination = BukkitWorldScriptHelper.doEvents(Arrays.asList
                         ("player equips armor",
                                 "player equips " + getArmorType(item),
                                 "player equips " + armor.identifySimple(),
                                 "player equips " + armor.identifyMaterial()),
-                null, new dPlayer(player), context).toUpperCase();
+                null, dEntity.getPlayerFrom(player), context).toUpperCase();
 
         if (determination.startsWith("CANCELLED")) {
             new BukkitRunnable() {
@@ -368,12 +382,12 @@ public class PlayerEquipsArmorSmartEvent implements SmartEvent, Listener {
         context.put("armor", armor);
         context.put("reason", new Element(reason));
 
-        String determination = EventManager.doEvents(Arrays.asList
+        String determination = BukkitWorldScriptHelper.doEvents(Arrays.asList
                         ("player unequips armor",
                                 "player unequips " + getArmorType(item),
                                 "player unequips " + armor.identifySimple(),
                                 "player unequips " + armor.identifyMaterial()),
-                null, new dPlayer(player), context).toUpperCase();
+                null, dEntity.getPlayerFrom(player), context).toUpperCase();
 
         if (determination.startsWith("CANCELLED")) {
             new BukkitRunnable() {
@@ -386,6 +400,6 @@ public class PlayerEquipsArmorSmartEvent implements SmartEvent, Listener {
         }
 
         return false;
-        
+
     }
 }

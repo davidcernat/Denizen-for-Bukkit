@@ -1,13 +1,15 @@
 package net.aufdemrand.denizen.scripts.containers.core;
 
 import com.google.common.base.Predicate;
-import net.aufdemrand.denizen.utilities.*;
+import net.aufdemrand.denizen.utilities.DenizenAPI;
+import net.aufdemrand.denizen.utilities.DenizenCommand;
+import net.aufdemrand.denizen.utilities.DenizenCommandHelpTopic;
 import net.aufdemrand.denizen.utilities.debugging.dB;
 import org.bukkit.Server;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandMap;
-import org.bukkit.craftbukkit.v1_8_R1.command.VanillaCommandWrapper;
-import org.bukkit.craftbukkit.v1_8_R1.help.CommandAliasHelpTopic;
+import org.bukkit.craftbukkit.v1_8_R3.command.VanillaCommandWrapper;
+import org.bukkit.craftbukkit.v1_8_R3.help.CommandAliasHelpTopic;
 import org.bukkit.event.Listener;
 import org.bukkit.help.HelpMap;
 import org.bukkit.help.HelpTopic;
@@ -66,7 +68,8 @@ public class CommandScriptHelper implements Listener {
                     helpTopics.put("/help", helpTopics.get("/bukkit:help"));
                 }
             }.runTaskLater(DenizenAPI.getCurrentInstance(), 1);
-        } catch (Exception e) {
+        }
+        catch (Exception e) {
             dB.echoError("Error getting the server's command information! Are you running a non-CraftBukkit server?");
             dB.echoError("Command scripts will not function!");
             //dB.echoError(e);
@@ -123,8 +126,8 @@ public class CommandScriptHelper implements Listener {
      * commands of the same name. This should be called for the name of the command
      * and each alias of the command.
      *
-     * @param name name or alias of the command.
-     * @param command the command.
+     * @param name      name or alias of the command.
+     * @param command   the command.
      * @param helpTopic the help topic for the command or command alias.
      */
     private static void forceCommand(String name, DenizenCommand command, HelpTopic helpTopic) {

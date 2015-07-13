@@ -1,19 +1,29 @@
 package net.aufdemrand.denizen.npc.traits;
 
-import java.io.File;
-
 import net.citizensnpcs.api.ai.speech.SpeechContext;
 import net.citizensnpcs.api.exception.NPCLoadException;
 import net.citizensnpcs.api.persistence.Persist;
 import net.citizensnpcs.api.trait.Trait;
 import net.citizensnpcs.api.util.DataKey;
-
-import org.alicebot.ab.*;
+import org.alicebot.ab.Bot;
+import org.alicebot.ab.Chat;
 import org.bukkit.Bukkit;
-import org.bukkit.entity.LivingEntity;
+import org.bukkit.entity.Entity;
+
+import java.io.File;
 
 public class ChatbotTrait extends Trait {
 
+    // <--[language]
+    // @name ChatBot Trait
+    // @group NPC Traits
+    // @description
+    // A fully functional NPC AI Chat bot.
+    //
+    // Requires <@link url http://ci.citizensnpcs.co/job/AliceBot/> (ALICE Bot)
+    // In your /plugins/Denizen/lib folder.
+    //
+    // -->
     public ChatbotTrait() {
         super("chatbot");
     }
@@ -31,14 +41,14 @@ public class ChatbotTrait extends Trait {
         setBot(key.getString("botname"));
     }
 
-    public void chatTo(LivingEntity entity, String input) {
-        SpeechContext context = new SpeechContext(reponse(input));
+    public void chatTo(Entity entity, String input) {
+        SpeechContext context = new SpeechContext(response(input));
         context.addRecipient(entity);
-        context.setTalker(getNPC().getBukkitEntity());
+        context.setTalker(getNPC().getEntity());
         npc.getDefaultSpeechController().speak(context, "chat");
     }
 
-    public String reponse(String request) {
+    public String response(String request) {
         return chatSession.multisentenceRespond(request);
     }
 

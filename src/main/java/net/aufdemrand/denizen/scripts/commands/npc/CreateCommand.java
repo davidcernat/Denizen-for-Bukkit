@@ -1,19 +1,19 @@
 package net.aufdemrand.denizen.scripts.commands.npc;
 
+import net.aufdemrand.denizen.objects.dEntity;
+import net.aufdemrand.denizen.objects.dLocation;
+import net.aufdemrand.denizen.objects.dNPC;
+import net.aufdemrand.denizen.utilities.debugging.dB;
 import net.aufdemrand.denizencore.exceptions.CommandExecutionException;
 import net.aufdemrand.denizencore.exceptions.InvalidArgumentsException;
-import net.aufdemrand.denizen.objects.*;
-import net.aufdemrand.denizen.scripts.ScriptEntry;
-import net.aufdemrand.denizen.scripts.commands.AbstractCommand;
-import net.aufdemrand.denizen.utilities.debugging.dB;
+import net.aufdemrand.denizencore.objects.Element;
+import net.aufdemrand.denizencore.objects.Mechanism;
+import net.aufdemrand.denizencore.objects.aH;
+import net.aufdemrand.denizencore.objects.dList;
+import net.aufdemrand.denizencore.scripts.ScriptEntry;
+import net.aufdemrand.denizencore.scripts.commands.AbstractCommand;
 import net.citizensnpcs.api.CitizensAPI;
 import net.citizensnpcs.api.trait.Trait;
-
-/**
- * Creates a NPC.
- *
- *
- */
 
 public class CreateCommand extends AbstractCommand {
 
@@ -26,8 +26,8 @@ public class CreateCommand extends AbstractCommand {
                     && arg.matchesArgumentType(dEntity.class)) {
                 // Avoid duplication of objects
                 dEntity ent = arg.asType(dEntity.class);
-                if (!ent.isGeneric() && !ent.isNPC())
-                    throw new InvalidArgumentsException("Entity supplied must be generic or an NPC!");
+                if (!ent.isGeneric() && !ent.isCitizensNPC())
+                    throw new InvalidArgumentsException("Entity supplied must be generic or a Citizens NPC!");
                 scriptEntry.addObject("entity_type", ent);
             }
 
@@ -45,6 +45,12 @@ public class CreateCommand extends AbstractCommand {
             else arg.reportUnhandled();
         }
 
+        if (!scriptEntry.hasObject("name")) {
+            throw new InvalidArgumentsException("Must specify a name!");
+        }
+        if (!scriptEntry.hasObject("entity_type")) {
+            throw new InvalidArgumentsException("Must specify an entity type!");
+        }
     }
 
     @Override
@@ -59,13 +65,13 @@ public class CreateCommand extends AbstractCommand {
                 + (traits != null ? traits.debug() : ""));
 
         dNPC created;
-        if (!type.isGeneric() && type.isNPC()) {
+        if (!type.isGeneric() && type.isCitizensNPC()) {
             created = new dNPC(type.getDenizenNPC().getCitizen().clone());
             created.getCitizen().setName(name.asString());
         }
         else {
             created = dNPC.mirrorCitizensNPC(CitizensAPI.getNPCRegistry()
-                    .createNPC(type.getEntityType(), name.asString()));
+                    .createNPC(type.getBukkitEntityType(), name.asString()));
         }
 
         // Add the created NPC into the script entry so it can be utilized if need be.
@@ -82,7 +88,7 @@ public class CreateCommand extends AbstractCommand {
                     dB.echoError(scriptEntry.getResidingQueue(), "Could not add trait to NPC: " + trait_name);
             }
         }
-        for (Mechanism mechanism: type.getWaitingMechanisms()) {
+        for (Mechanism mechanism : type.getWaitingMechanisms()) {
             created.adjust(mechanism);
         }
     }

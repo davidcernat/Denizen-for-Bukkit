@@ -1,18 +1,26 @@
 package net.aufdemrand.denizen.objects;
 
-import net.aufdemrand.denizen.objects.properties.Property;
-import net.aufdemrand.denizen.objects.properties.PropertyParser;
-import net.aufdemrand.denizen.tags.Attribute;
+import net.aufdemrand.denizen.utilities.DenizenAPI;
+import net.aufdemrand.denizen.utilities.blocks.FakeBlock;
 import net.aufdemrand.denizen.utilities.debugging.dB;
-import net.aufdemrand.denizen.utilities.depends.Depends;
-import net.citizensnpcs.api.CitizensAPI;
-import org.bukkit.*;
-import org.bukkit.craftbukkit.v1_8_R1.CraftChunk;
+import net.aufdemrand.denizencore.objects.*;
+import net.aufdemrand.denizencore.objects.properties.Property;
+import net.aufdemrand.denizencore.objects.properties.PropertyParser;
+import net.aufdemrand.denizencore.tags.Attribute;
+import net.aufdemrand.denizencore.tags.TagContext;
+import org.bukkit.Chunk;
+import org.bukkit.ChunkSnapshot;
+import org.bukkit.Location;
+import org.bukkit.World;
+import org.bukkit.craftbukkit.v1_8_R3.CraftChunk;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
-import org.bukkit.entity.Player;
+import org.bukkit.scheduler.BukkitRunnable;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Random;
 
 public class dChunk implements dObject, Adjustable {
 
@@ -20,17 +28,20 @@ public class dChunk implements dObject, Adjustable {
     //    OBJECT FETCHER
     ////////////////
 
+    public static dChunk valueOf(String string) {
+        return valueOf(string, null);
+    }
+
     /**
      * Gets a Chunk Object from a string form of x,z,world.
      * This is not to be confused with the 'x,y,z,world' of a
      * location, which is a finer grain of unit in a dWorlds.
      *
-     * @param string  the string or dScript argument String
-     * @return  a dChunk, or null if incorrectly formatted
-     *
+     * @param string the string or dScript argument String
+     * @return a dChunk, or null if incorrectly formatted
      */
     @Fetchable("ch")
-    public static dChunk valueOf(String string) {
+    public static dChunk valueOf(String string, TagContext context) {
         if (string == null) return null;
 
         string = string.toLowerCase().replace("ch@", "");
@@ -44,12 +55,14 @@ public class dChunk implements dObject, Adjustable {
             try {
                 return new dChunk((CraftChunk) dWorld.valueOf(parts[2]).getWorld()
                         .getChunkAt(Integer.valueOf(parts[0]), Integer.valueOf(parts[1])));
-            } catch (Exception e) {
+            }
+            catch (Exception e) {
                 dB.log("valueOf dChunk returning null: " + "ch@" + string);
                 return null;
             }
 
-        } else
+        }
+        else
             dB.log("valueOf dChunk unable to handle malformed format: " + "ch@" + string);
 
         return null;
@@ -241,8 +254,8 @@ public class dChunk implements dObject, Adjustable {
         if (attribute.startsWith("players")) {
             dList entities = new dList();
             for (Entity ent : chunk.getEntities())
-                if (ent instanceof Player && (Depends.citizens == null || !CitizensAPI.getNPCRegistry().isNPC(ent)))
-                    entities.add(new dPlayer((Player) ent).identify());
+                if (dEntity.isPlayer(ent))
+                    entities.add(dEntity.getPlayerFrom(ent).identify());
 
             return entities.getAttribute(attribute.fulfill(1));
         }
@@ -269,7 +282,7 @@ public class dChunk implements dObject, Adjustable {
         if (attribute.startsWith("average_height")) {
             int sum = 0;
             for (int i : chunk.getHandle().heightMap) sum += i;
-            return new Element(((double) sum)/chunk.getHandle().heightMap.length).getAttribute(attribute.fulfill(1));
+            return new Element(((double) sum) / chunk.getHandle().heightMap.length).getAttribute(attribute.fulfill(1));
         }
 
         // <--[tag]
@@ -412,6 +425,35 @@ public class dChunk implements dObject, Adjustable {
         // -->
         if (mechanism.matches("regenerate")) {
             getWorld().regenerateChunk(getX(), getZ());
+        }
+
+        // <--[mechanism]
+        // @object dChunk
+        // @name refresh_chunk
+        // @input None
+        // @description
+        // Refreshes the chunk, sending any changed properties to players.
+        // @tags
+        // None
+        // -->
+        if (mechanism.matches("refresh_chunk")) {
+            final int chunkX = getX();
+            final int chunkZ = getZ();
+            getWorld().refreshChunk(chunkX, chunkZ);
+            new BukkitRunnable() {
+                @Override
+                public void run() {
+                    for (Map<dLocation, FakeBlock> blocks : FakeBlock.getBlocks().values()) {
+                        for (Map.Entry<dLocation, FakeBlock> locBlock : blocks.entrySet()) {
+                            dLocation location = locBlock.getKey();
+                            if (Math.floor(location.getX() / 16) == chunkX
+                                    && Math.floor(location.getZ() / 16) == chunkZ) {
+                                locBlock.getValue().updateBlock();
+                            }
+                        }
+                    }
+                }
+            }.runTaskLater(DenizenAPI.getCurrentInstance(), 2);
         }
 
         if (!mechanism.fulfilled())

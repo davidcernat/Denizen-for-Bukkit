@@ -1,13 +1,19 @@
 package net.aufdemrand.denizen.events.core;
 
-import net.aufdemrand.denizen.events.EventManager;
-import net.aufdemrand.denizen.events.SmartEvent;
-import net.aufdemrand.denizen.objects.*;
+import net.aufdemrand.denizen.objects.dCuboid;
+import net.aufdemrand.denizen.objects.dEntity;
+import net.aufdemrand.denizen.objects.dLocation;
+import net.aufdemrand.denizen.scripts.containers.core.BukkitWorldScriptHelper;
 import net.aufdemrand.denizen.utilities.DenizenAPI;
 import net.aufdemrand.denizen.utilities.debugging.dB;
+import net.aufdemrand.denizencore.events.OldSmartEvent;
+import net.aufdemrand.denizencore.objects.dList;
+import net.aufdemrand.denizencore.objects.dObject;
 import net.aufdemrand.denizencore.utilities.CoreUtilities;
+import org.bukkit.Location;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.player.PlayerChangedWorldEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerTeleportEvent;
 
@@ -16,7 +22,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class CuboidEnterExitSmartEvent implements SmartEvent, Listener {
+public class CuboidEnterExitSmartEvent implements OldSmartEvent, Listener {
 
 
     ///////////////////
@@ -77,6 +83,7 @@ public class CuboidEnterExitSmartEvent implements SmartEvent, Listener {
     public void breakDown() {
         PlayerMoveEvent.getHandlerList().unregister(this);
         PlayerTeleportEvent.getHandlerList().unregister(this);
+        PlayerChangedWorldEvent.getHandlerList().unregister(this);
     }
 
     //////////////
@@ -99,7 +106,7 @@ public class CuboidEnterExitSmartEvent implements SmartEvent, Listener {
     // @Context
     // <context.from> returns the block location moved from.
     // <context.to> returns the block location moved to.
-    // <context.cuboids> returns a list of cuboids entered/exited (when no cuboid is specified in the event name)
+    // <context.cuboids> returns a list of cuboids entered/exited (when no cuboid is specified in the event name).
     //
     // @Determine
     // "CANCELLED" to stop the player from moving.
@@ -108,21 +115,39 @@ public class CuboidEnterExitSmartEvent implements SmartEvent, Listener {
     // -->
     @EventHandler
     public void onPlayerTeleport(PlayerTeleportEvent event) {
+        if (dEntity.isNPC(event.getPlayer())) {
+            return;
+        }
         PlayerMoveEvent evt = new PlayerMoveEvent(event.getPlayer(), event.getFrom(), event.getTo());
         playerMoveEvent(evt);
-        event.setCancelled(evt.isCancelled());
+        if (evt.isCancelled())
+            event.setCancelled(true);
+    }
+
+    public void onWorldChange(PlayerChangedWorldEvent event) {
+        if (dEntity.isNPC(event.getPlayer())) {
+            return;
+        }
+        Location to = event.getPlayer().getLocation().clone();
+        Location from = event.getPlayer().getLocation().clone();
+        from.setWorld(event.getFrom());
+        PlayerMoveEvent evt = new PlayerMoveEvent(event.getPlayer(), from, to);
+        playerMoveEvent(evt);
     }
 
     @EventHandler
     public void playerMoveEvent(PlayerMoveEvent event) {
+        if (dEntity.isNPC(event.getPlayer())) {
+            return;
+        }
 
         if (event.getFrom().getBlock().equals(event.getTo().getBlock())) return;
 
         // Look for cuboids that contain the block's location
         List<dCuboid> cuboids = dCuboid.getNotableCuboidsContaining(event.getTo());
         List<dCuboid> match = new ArrayList<dCuboid>();
-        String namelow = CoreUtilities.toLowerCase(event.getPlayer().getName());
-        if (player_cuboids.containsKey(namelow))
+        String namelow = CoreUtilities.toLowerCase(event.getPlayer().getName()); // TODO: UUID?
+        if (player_cuboids.containsKey(namelow)) // TODO: Clear on quit?
             match = player_cuboids.get(namelow);
 
         List<dCuboid> exits = new ArrayList<dCuboid>(match);
@@ -168,7 +193,6 @@ public class CuboidEnterExitSmartEvent implements SmartEvent, Listener {
 
     /**
      * Fires world events for the Cuboid Enter/Exit Smart Event.
-     *
      */
     private boolean Fire(PlayerMoveEvent event, dList cuboids, String EventName) {
         List<String> events = new ArrayList<String>();
@@ -178,8 +202,8 @@ public class CuboidEnterExitSmartEvent implements SmartEvent, Listener {
         context.put("cuboids", cuboids);
         events.add(EventName);
 
-        String determination = EventManager.doEvents(events,
-                null, new dPlayer(event.getPlayer()), context, true);
+        String determination = BukkitWorldScriptHelper.doEvents(events,
+                null, dEntity.getPlayerFrom(event.getPlayer()), context, true);
 
         if (determination.toUpperCase().startsWith("CANCELLED")) {
             event.setCancelled(true);

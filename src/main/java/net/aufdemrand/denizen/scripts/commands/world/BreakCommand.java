@@ -1,28 +1,27 @@
 package net.aufdemrand.denizen.scripts.commands.world;
 
 import net.aufdemrand.denizen.BukkitScriptEntryData;
-import net.aufdemrand.denizencore.exceptions.CommandExecutionException;
-import net.aufdemrand.denizencore.exceptions.InvalidArgumentsException;
-import net.aufdemrand.denizen.objects.*;
-import net.aufdemrand.denizen.scripts.ScriptEntry;
-import net.aufdemrand.denizen.scripts.commands.AbstractCommand;
-import net.aufdemrand.denizencore.scripts.commands.Holdable;
+import net.aufdemrand.denizen.objects.dEntity;
+import net.aufdemrand.denizen.objects.dLocation;
+import net.aufdemrand.denizen.objects.dMaterial;
 import net.aufdemrand.denizen.utilities.DenizenAPI;
 import net.aufdemrand.denizen.utilities.debugging.dB;
+import net.aufdemrand.denizencore.exceptions.CommandExecutionException;
+import net.aufdemrand.denizencore.exceptions.InvalidArgumentsException;
+import net.aufdemrand.denizencore.objects.Element;
+import net.aufdemrand.denizencore.objects.aH;
+import net.aufdemrand.denizencore.objects.dObject;
+import net.aufdemrand.denizencore.scripts.ScriptEntry;
+import net.aufdemrand.denizencore.scripts.commands.AbstractCommand;
+import net.aufdemrand.denizencore.scripts.commands.Holdable;
 import net.citizensnpcs.api.ai.tree.BehaviorStatus;
-import net.citizensnpcs.npc.ai.BlockBreaker;
-
+import net.citizensnpcs.api.npc.BlockBreaker;
+import net.citizensnpcs.npc.ai.CitizensBlockBreaker;
 import org.bukkit.Bukkit;
 
 import java.util.HashMap;
 
-/**
- * Breaks a block using Citizens' BlockBreaker
- *
- * @author Jeremy Schroeder
- */
-
-public class BreakCommand extends AbstractCommand implements Holdable {
+public class BreakCommand extends AbstractCommand implements Holdable { // TODO: Should this be a NPC command?
 
     @Override
     public void parseArgs(ScriptEntry scriptEntry) throws InvalidArgumentsException {
@@ -51,7 +50,7 @@ public class BreakCommand extends AbstractCommand implements Holdable {
 
         // Use the NPC or the Player as the default entity
         scriptEntry.defaultObject("entity",
-                (((BukkitScriptEntryData)scriptEntry.entryData).hasNPC() ? ((BukkitScriptEntryData)scriptEntry.entryData).getNPC().getDenizenEntity() : null));
+                (((BukkitScriptEntryData) scriptEntry.entryData).hasNPC() ? ((BukkitScriptEntryData) scriptEntry.entryData).getNPC().getDenizenEntity() : null));
 
         if (!scriptEntry.hasObject("entity"))
             throw new InvalidArgumentsException("Must specify an entity!");
@@ -59,6 +58,7 @@ public class BreakCommand extends AbstractCommand implements Holdable {
         scriptEntry.defaultObject("radius", new Element(2));
 
     }
+
     // <--[action]
     // @Actions
     // dig
@@ -82,25 +82,23 @@ public class BreakCommand extends AbstractCommand implements Holdable {
         context.put("location", location);
         context.put("material", material);
 
-
         dB.report(scriptEntry, getName(), location.debug() + entity.debug() + radius.debug());
 
         final ScriptEntry se = scriptEntry;
-        BlockBreaker.Configuration config = new BlockBreaker.Configuration();
+        BlockBreaker.BlockBreakerConfiguration config = new BlockBreaker.BlockBreakerConfiguration();
         config.item(entity.getLivingEntity().getEquipment().getItemInHand());
         config.radius(radius.asDouble());
         config.callback(new Runnable() {
             @Override
             public void run() {
-                if (entity.isNPC()) {
+                if (entity.isCitizensNPC()) {
                     DenizenAPI.getDenizenNPC(entity.getDenizenNPC().getCitizen()).action("dig", null, context);
                     se.setFinished(true);
                 }
             }
         });
 
-
-        final BlockBreaker breaker = BlockBreaker.createWithConfiguration(entity.getLivingEntity(),
+        final CitizensBlockBreaker breaker = new CitizensBlockBreaker(entity.getLivingEntity(),
                 location.getBlock(), config);
         if (breaker.shouldExecute()) {
             TaskRunnable run = new TaskRunnable(breaker);

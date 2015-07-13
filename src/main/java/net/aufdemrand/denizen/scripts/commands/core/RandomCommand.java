@@ -1,37 +1,17 @@
 package net.aufdemrand.denizen.scripts.commands.core;
 
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
+import net.aufdemrand.denizen.utilities.debugging.dB;
 import net.aufdemrand.denizencore.exceptions.CommandExecutionException;
 import net.aufdemrand.denizencore.exceptions.InvalidArgumentsException;
-import net.aufdemrand.denizen.scripts.ScriptEntry;
-import net.aufdemrand.denizen.scripts.queues.ScriptQueue;
-import net.aufdemrand.denizen.scripts.commands.BracedCommand;
-import net.aufdemrand.denizen.objects.aH;
-import net.aufdemrand.denizen.utilities.debugging.dB;
+import net.aufdemrand.denizencore.objects.Element;
+import net.aufdemrand.denizencore.objects.aH;
+import net.aufdemrand.denizencore.scripts.ScriptEntry;
+import net.aufdemrand.denizencore.scripts.commands.BracedCommand;
+import net.aufdemrand.denizencore.scripts.queues.ScriptQueue;
 import net.aufdemrand.denizencore.utilities.CoreUtilities;
 
+import java.util.List;
 
-/**
- * Randomly selects a random script entry from the proceeding entries, discards
- * the rest.
- *
- *     <ol><tt>Usage:  RANDOM [#]</tt></ol>
- *
- * [#] of entries to randomly select from. Will select 1 of # to execute and
- * discard the rest.<br/><br/>
- *
- * Example Usage:<br/>
- * <ul style="list-style-type: none;">
- * <li><tt>Script:</tt></li>
- * <li><tt>- RANDOM 3</tt></li>
- * <li><tt>- CHAT Random Message 1</tt></li>
- * <li><tt>- CHAT Random Message 2</tt></li>
- * <li><tt>- CHAT Random Message 3 </tt></li>
- * </ul>
- *
- * @author Jeremy Schroeder
- */
 
 public class RandomCommand extends BracedCommand {
 
@@ -77,13 +57,13 @@ public class RandomCommand extends BracedCommand {
 
         int possibilities = 0;
         ScriptQueue queue = scriptEntry.getResidingQueue();
-        ArrayList<ScriptEntry> bracedCommands = null;
+        List<ScriptEntry> bracedCommands = null;
 
         if (!scriptEntry.hasObject("braces")) {
             possibilities = scriptEntry.getElement("possibilities").asInt();
         }
         else {
-            bracedCommands = ((LinkedHashMap<String, ArrayList<ScriptEntry>>) scriptEntry.getObject("braces")).get("RANDOM");
+            bracedCommands = ((List<BracedData>) scriptEntry.getObject("braces")).get(0).value;
             possibilities = bracedCommands.size();
         }
 
@@ -96,6 +76,8 @@ public class RandomCommand extends BracedCommand {
         previous3 = previous2;
         previous2 = previous;
         previous = selected;
+        scriptEntry.addObject("possibilities", new Element(possibilities));
+        scriptEntry.addObject("selected", new Element(selected));
 
         dB.report(scriptEntry, getName(), aH.debugObj("possibilities", possibilities) + aH.debugObj("choice", selected + 1));
 
@@ -110,7 +92,7 @@ public class RandomCommand extends BracedCommand {
 
                 else {
                     dB.echoDebug(scriptEntry, "...selected '" + queue.getEntry(0).getCommandName() + ": "
-                        + queue.getEntry(0).getArguments() + "'.");
+                            + queue.getEntry(0).getArguments() + "'.");
                     keeping = queue.getEntry(0);
                     queue.removeEntry(0);
                 }

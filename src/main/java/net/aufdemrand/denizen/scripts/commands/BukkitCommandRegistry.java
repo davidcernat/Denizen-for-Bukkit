@@ -172,15 +172,16 @@ public class BukkitCommandRegistry extends CommandRegistry {
         // @Description
         // Minecraft implements several player and entity animations which the animate command can use, just
         // specify an entity and an animation.
-
+        //
         // Player animations require a Player-type entity or NPC. Available player animations include:
         // ARM_SWING, CRIT, HURT, and MAGIC_CRIT, SIT, SLEEP, SNEAK, STOP_SITTING, STOP_SLEEPING, STOP_SNEAKING,
         // START_USE_ITEM, STOP_USE_ITEM, EAT_FOOD
-
-        // All entities, regardless of type, can utilize the 'hurt' animation. Additionally, wolf entities
-        // and NPCs can also use: WOLF_SMOKE, WOLF_HEARTS, and WOLF_SHAKE. Sheep entities and NPCs also have
-        // available the SHEEP_EAT animation.
-
+        //
+        // All entities also have available Bukkit's entity effect list, which includes:
+        // DEATH, FIREWORK_EXPLODE, HURT, IRON_GOLEM_ROSE, SHEEP_EAT, VILLAGER_ANGRY, VILLAGER_HAPPY
+        // VILLAGER_HEART, WITCH_MAGIC, WOLF_HEARTS, WOLF_SHAKE, WOLF_SMOKE, ZOMBIE_TRANSFORM
+        //
+        // Note that the above list only applies where logical, EG 'WOLF_' animations only apply to wolves.
         // @Tags
         // None
 
@@ -207,11 +208,32 @@ public class BukkitCommandRegistry extends CommandRegistry {
         // @Author Jeebiss, mcmonkey
         // @Group world
         // @Description
-        // TODO: Document Command Details
+        // This command animates a chest in the world to open or close at a specified location.
+        // The command by default will open the chest. It accepts a sound argument which specifies whether
+        // the open or close sound will play aswell as the animation. The sound plays by default and
+        // can be disabled with 'sound:false' It also accepts a player or list of players to animate the chest to,
+        // allowing only selected players to see the chest animate as opened or closed.
         // @Tags
         // TODO: Document Command Details
         // @Usage
-        // TODO: Document Command Details
+        // Use to animate a chest to open at 15,89,-45 in world: world
+        // - animatechest l@15,89,-45,world
+
+        // @Usage
+        // To then close the chest at 15,89,-45 in world: world
+        // - animatechest l@15,89,-45,world close
+
+        // @Usage
+        // Use to animate a chest to open with no sound at 12,12,-64 in world: peter
+        // - animatechest l@12,12,-64,peter sound:false
+
+        // @Usage
+        // If only a player by the name of Morphan1 should see the chest open
+        // - animatechest l@12,12,-64,peter sound:false p@Morphan1
+
+        // @Usage
+        // The command also accepts a list of players to view the animation
+        // - animatechest l@12,12,-64,peter sound:false p@Morphan1|p@mcmonkey4eva|p@Fortifier42
         // -->
         registerCoreMember(AnimateChestCommand.class,
                 "ANIMATECHEST", "animatechest [<location>] ({open}/close) (sound:{true}/false) (<player>|...)", 1);
@@ -332,11 +354,28 @@ public class BukkitCommandRegistry extends CommandRegistry {
         // @Author aufdemrand
         // @Group world
         // @Description
-        // TODO: Document Command Details
+        // By itself, the 'break' command will act as a NPC command in the sense that an attached
+        // NPC will navigate to and break the block at the attached location. It can also accept a specified npc,
+        // to fulfill the command, just specify a 'fetchable' npc object. It can also accept a radius to start
+        // breaking the block from within. To specify the npc, prefix the npc with 'entity:'. To specify the
+        // radius, prefix the radius with 'radius:'.
+
         // @Tags
-        // TODO: Document Command Details
+        // <n@npc.navigator.is_navigating>
+        // <n@npc.navigator.target_location>
+
         // @Usage
-        // TODO: Document Command Details
+        // Use to make a npc break a block at 17,64,-87 in world
+        // - break l@17,64,-87,world
+
+        // @Usage
+        // Use to make a npc with the id 12 break a block at 17,64,-87 in world
+        // - break l@17,64,-87,world entity:n@12
+
+        // @Usage
+        // Use to make a npc with the name bob break a block at 17,64,-87 and start digging from 5 blocks away
+        // - break l@17,64,-87,world entity:n@bob radius:5
+
         // -->
         if (Depends.citizens != null)
             registerCoreMember(BreakCommand.class,
@@ -388,19 +427,21 @@ public class BukkitCommandRegistry extends CommandRegistry {
         // @Description
         // Casts or removes a potion effect to or from a list of entities. If you don't specify a duration,
         // it defaults to 60 seconds. If you don't specify a power level, it defaults to 1.
+        // To cast an effect with a duration which displays as '**:**' or 'infinite' use a duration
+        // of 1639s (1639 seconds) or greater. While it may display as infinite, it will still wear off.
 
         // @Tags
         // <e@entity.has_effect[<effect>]>
 
         // @Usage
         // Use to apply an effect to an entity
-        // - potion jump <player> d:120 p:3
+        // - cast jump <player> d:120 p:3
         // - narrate "You have been given the temporary ability to jump like a kangaroo."
 
         // @Usage
         // Use to remove an effect from an entity
         // - if <player.has_effect[jump]> {
-        //   - potion jump remove <player>
+        //   - cast jump remove <player>
         //   }
         //
         // -->
@@ -469,9 +510,10 @@ public class BukkitCommandRegistry extends CommandRegistry {
         // @Author spaceemotion, mcmonkey
         // @Group world
         // @Description
-        // TODO: Document Command Details
+        // TODO Document Command Details
         // @Tags
-        // TODO: Document Command Details
+        // <w@world.loaded_chunks>
+        // <ch@chunk.is_loaded>
         // @Usage
         // Use to load a chunk.
         // - chunkload ch@0,0,world
@@ -491,7 +533,7 @@ public class BukkitCommandRegistry extends CommandRegistry {
 
         // <--[command]
         // @Name Compass
-        // @Syntax compass [<location>]
+        // @Syntax compass [<location>/reset]
         // @Required 1
         // @Stable stable
         // @Short Redirects the player's compass to target the given location.
@@ -505,7 +547,7 @@ public class BukkitCommandRegistry extends CommandRegistry {
         // TODO: Document Command Details
         // -->
         registerCoreMember(CompassCommand.class,
-                "COMPASS", "compass [<location>]", 1);
+                "COMPASS", "compass [<location>/reset]", 1);
 
 
         // <--[command]
@@ -603,70 +645,24 @@ public class BukkitCommandRegistry extends CommandRegistry {
         // @Author aufdemrand, mcmonkey
         // @Group world
         // @Description
-        // TODO: Document Command Details
+        // This command creates a new minecraft world with the specified name.
+        // If a worldtype is not specified it will create a world with a worldtype of NORMAL.
+        // TODO: Document Command Details (generator)
+        // It accepts a world type which can be specified with 'worldtype:'.
+        // Recognised world type are NORMAL (creates a normal world), FLAT (creates a world with flat terrain),
+        // LARGE_BIOMES (creates a normal world with 16x larger biomes) and AMPLIFIED (creates a world with tall
+        // mountain-like terrain)
         // @Tags
         // <server.list_worlds>
         // @Usage
-        // TODO: Document Command Details
+        // Use to create a normal world with name survival
+        // - createworld survival
+        // @Usage
+        // Use to create a flat world with the name superflat
+        // - createworld superflat worldtype:FLAT
         // -->
         registerCoreMember(CreateWorldCommand.class,
                 "CREATEWORLD", "createworld [<name>] (g:<generator>) (worldtype:<type>)", 1);
-
-
-        // <--[command]
-        // @Name Define
-        // @Syntax define [<id>] [<value>]
-        // @Required 1
-        // @Stable stable
-        // @Short Creates a temporary variable inside a script queue.
-        // @Author aufdemrand
-        // @Group core
-
-        // @Description
-        // Definitions are queue-level (or script-level) 'variables' that can be used throughout a script, once
-        // defined, by using %'s around the definition id/name. Definitions are only valid on the current queue and are
-        // not transferred to any new queues constructed within the script, such as a 'run' command, without explicitly
-        // specifying to do so.
-        //
-        // Definitions are lighter and faster than creating a temporary flag, but unlike flags, are only a single entry,
-        // that is, you can't add or remove from the definition, but you can re-create it if you wish to specify a new
-        // value. Definitions are also automatically destroyed when the queue is completed, so there is no worry for
-        // leaving unused data hanging around.
-        //
-        // Definitions are also resolved before replaceable tags, meaning you can use them within tags, even as an
-        // attribute. ie. <%player%.name>
-
-        // @Tags
-        // %<ID>% to get the value assign to an ID
-        // <def[<ID>]> to get the value assigned to an ID
-
-        // @Usage
-        // Use to make complex tags look less complex, and scripts more readable.
-        // - narrate 'You invoke your power of notice...'
-        // - define range '<player.flag[range_level].mul[3]>'
-        // - define blocks '<player.flag[noticeable_blocks]>'
-        // - narrate '[NOTICE] You have noticed <player.location.find.blocks[<def[blocks]>].within[<def[range]>].size>
-        // blocks in the area that may be of interest.'
-
-        // @Usage
-        // Use to keep the value of a replaceable tag that you might use many times within a single script. Definitions
-        // can be faster and cleaner than reusing a replaceable tag over and over.
-        // - define arg1 <c.args.get[1]>
-        // - if <def[arg1]> == hello narrate 'Hello!'
-        // - if <def[arg1]> == goodbye narrate 'Goodbye!'
-
-        // @Usage
-        // Use to pass some important information (arguments) on to another queue.
-        // - run 'new_task' d:hello|world
-        // 'new_task' now has some definitions, <def[1]> and <def[2]>, that contains the contents specified, 'hello' and 'world'.
-
-        // @Usage
-        // Use to remove a definition
-        // - define myDef:!
-
-        // -->
-        registerCoreMember(DefineCommand.class,
-                "DEFINE", "define [<id>] [<value>]", 1);
 
 
         // <--[command]
@@ -697,29 +693,6 @@ public class BukkitCommandRegistry extends CommandRegistry {
         if (Depends.citizens != null)
             registerCoreMember(DespawnCommand.class,
                     "DESPAWN", "despawn (<npc>)", 0);
-
-
-        // <--[command]
-        // @Name Determine
-        // @Syntax determine (passively) [<value>]
-        // @Required 1
-        // @Stable stable
-        // @Short Sets the outcome of a world event.
-        // @Author aufdemrand
-        // @Group core
-        // @Description
-        // TODO: Document Command Details
-        // @Tags
-        // TODO: Document Command Details
-        // @Usage
-        // Use to modify the result of an event
-        // - determine <context.message.substring[5]>
-        // @Usage
-        // Use to cancel an event, but continue running script commands
-        // - determine passively cancelled
-        // -->
-        registerCoreMember(DetermineCommand.class,
-                "DETERMINE", "determine (passively) [<value>]", 1);
 
 
         // <--[command]
@@ -771,12 +744,24 @@ public class BukkitCommandRegistry extends CommandRegistry {
         // @Author aufdemrand, mcmonkey
         // @Group item
         // @Description
-        // TODO: Document Command Details
+        // This command drops an item at the specified location which cannot be picked up by players.
+        // It accepts a duration which determines how long the item will stay for until disappearing.
+        // If no duration is specified the item will stay for 1 minute, after which the item will disappear.
         // @Tags
         // TODO: Document Command Details
         // <entry[saveName].dropped> returns a dEntity of the spawned item.
         // @Usage
-        // TODO: Document Command Details
+        // Use to display a stone block dropped at a players location
+        // - displayitem i@stone <player.location>
+        // @Usage
+        // Use to display a diamond sword dropped at 12,64,-847 in world survival
+        // - displayitem i@diamond_sword l@12,64,-847,survival
+        // @Usage
+        // Use to display redstone dust dropped at -54,100,-87 in world creative disappear after 10 seconds
+        // - displayitem i@redstone l@-54,100,-87,creative duration:10s
+        // @Usage
+        // Use to save the dropped item to save entry 'item_dropped'
+        // - displayitem i@redstone l@-54,100,-87,creative duration:10s save:item_dropped
         // -->
         registerCoreMember(DisplayItemCommand.class,
                 "DISPLAYITEM", "displayitem [<item>] [<location>] (duration:<value>)", 2);
@@ -880,11 +865,19 @@ public class BukkitCommandRegistry extends CommandRegistry {
         // @Author David Cernat
         // @Group entity
         // @Description
-        // TODO: Document Command Details
+        // This command equips an item or armor to an entity or list of entities to the specified slot.
+        // It allows or blocks to be equipped in an entity's armor/hand slots, this inclueds horses.
         // @Tags
         // <e@entity.equipment>
         // @Usage
-        // TODO: Document Command Details
+        // Use to equip a stone block on a player's head
+        // - equip <player> head:i@stone
+        // @Usage
+        // Use to equip a diamond sword into the hand of an npc named bob
+        // - equip <n@bob> hand:i@diamond_sword
+        // @Usage
+        // Use to equip a iron helmet on two players named Bob and Steve
+        // - equip p@bob|p@steve head:i@iron_helmet
         // -->
         registerCoreMember(EquipCommand.class,
                 "EQUIP", "equip (<entity>|...) (hand:<item>) (head:<item>) (chest:<item>) (legs:<item>) (boots:<item>)", 1);
@@ -910,7 +903,7 @@ public class BukkitCommandRegistry extends CommandRegistry {
         // @Tags
         // <server.has_event[<event_name>]>
         // <server.get_event_handlers[<event_name>]>
-        // <entry[saveName].determination> returns the determined value (if any) from the event.
+        // <entry[saveName].determinations> returns a list of the determined values (if any) from the event.
         // @Usage
         // Use to trigger a custom event
         // - event "player triggers custom event"
@@ -957,7 +950,17 @@ public class BukkitCommandRegistry extends CommandRegistry {
         // <p@player.xp.total>
         // <p@player.xp.level>
         // @Usage
-        // TODO: Document Command Details
+        // Use to set a player's experience to 0
+        // - experience 0
+        // @Usage
+        // Use give give a player 1 level
+        // - experience give level 1
+        // @Usage
+        // Use to take 1 level from a player
+        // - experience take level 1
+        // @Usage
+        // Use to give a player with the name Morphan1 10 experience points.
+        // - experience give 10 player:p@Morphan1
         // -->
         registerCoreMember(ExperienceCommand.class,
                 "EXPERIENCE", "experience [{set}/give/take] (level) [<#>]", 2);
@@ -972,14 +975,31 @@ public class BukkitCommandRegistry extends CommandRegistry {
         // @Author Alain Blanquet
         // @Group world
         // @Description
-        // TODO: Document Command Details
+        // This command causes an explosion at the location specified (or the npc / player location) which does not
+        // destroy blocks or set fire to blocks within the explosion. It accepts a 'fire' option which will set blocks
+        // on fire within the explosion radius. It also accepts a 'breakblocks' option which will cause the explosion to
+        // break blocks within the power radius as well as creating an animation and sounds.
         // Default power: 1
         // Default location: npc.location, or if no NPC link, player.location.
         // It is highly recommended you specify a location to be safe.
         // @Tags
         // TODO: Document Command Details
         // @Usage
-        // TODO: Document Command Details
+        // Use to create an explosion at a player's location
+        // - explode <player.location>
+
+        // @Usage
+        // Use to create an explosion at a player, which breaks blocks and causes fire with a power of 5
+        // - explode power:5 <player.location> fire breakblocks
+
+        // @Usage
+        // Use to create an explosion with a power radius of 3 at a NPC's location
+        // - explode power:3 <npc.location>
+
+        // @Usage
+        // Use to create an explosion with a power radius of 3 at a 12,12,-1297 in a world called survival which breaks blocks
+        // - explode power:3 l@12,12,-1297,survival breakblocks
+
         // -->
         registerCoreMember(ExplodeCommand.class,
                 "EXPLODE", "explode (power:<#.#>) (<location>) (fire) (breakblocks)", 0);
@@ -1054,11 +1074,26 @@ public class BukkitCommandRegistry extends CommandRegistry {
         // @Author David Cernat
         // @Group world
         // @Description
-        // TODO: Document Command Details
+        // This command launches a firework from the specified location. The power option, which defaults to 1
+        // if left empty, specifies how high the firework will go before exploding. The type option
+        // which specifies the shape the firework will explode with. The primary option specifies what colour the
+        // firework will initially explode as. The fade option specifies what colour the firework will
+        // fade into after exploding. The flicker option means the firework will leave a trail behind it, and the
+        // flicker option means the firework will explode with a flicker effect.
         // @Tags
         // TODO: Document Command Details
         // @Usage
-        // TODO: Document Command Details
+        // Use to launch a star firework which explodes yellow and fades to white afterwards at the player's location
+        // - firework <player.location> star primary:yellow fade:white
+        // @Usage
+        // Use to make the firework launch double the height before exploding
+        // - firework <player.location> power:2 star primary:yellow fade:white
+        // @Usage
+        // Use to launch a firework which leaves a trail
+        // - firework <player.location> random trail
+        // @Usage
+        // Use to launch a firework which leaves a trail and explodes with a flicker effect at 10,43,-76 in world
+        // - firework l@10,43,-76,world random trail flicker
         // -->
         registerCoreMember(FireworkCommand.class,
                 "FIREWORK", "firework (<location>) (power:<#>) (<type>/random) (primary:<color>|...) (fade:<color>|...) (flicker) (trail)", 0);
@@ -1099,7 +1134,6 @@ public class BukkitCommandRegistry extends CommandRegistry {
         // <p@player.flag[<flag>]>
         // <n@npc.flag[<flag>]>
         // <server.flag[<flag>]>
-        // @Usage
         // @Usage
         // Use to create or set a flag on a player.
         // - flag player playstyle:agressive
@@ -1166,46 +1200,6 @@ public class BukkitCommandRegistry extends CommandRegistry {
         // -->
         registerCoreMember(FollowCommand.class,
                 "FOLLOW", "follow (followers:<entity>|...) (stop) (lead:<#.#>) (max:<#.#>) (speed:<#.#>) (target:<entity>) (allow_wander)", 0);
-
-
-        // <--[command]
-        // @Name Foreach
-        // @Syntax foreach [stop/next/<object>|...] [<commands>]
-        // @Required 1
-        // @Stable stable
-        // @Short Loops through a dList, running a set of commands for each item.
-        // @Author Morphan1, mcmonkey
-        // @Group core
-        // @Video /denizen/vids/Loops
-
-        // @Description
-        // Loops through a dList of any type. For each item in the dList, the specified commands will be ran for
-        // that list entry. To call the value of the entry while in the loop, you can use <def[value]>.
-        //
-        // To end a foreach loop, do - foreach stop
-        //
-        // To jump immediately to the next entry in the loop, do - foreach next
-
-        // @Tags
-        // <def[value]> to get the current item in the loop
-        // <def[loop_index]> to get the current loop iteration number
-
-        // @Usage
-        // Use to run commands for 'each entry' in a list of objects/elements.
-        // - foreach li@e@123|n@424|p@BobBarker {
-        //     - announce "There's something at <def[value].location>!"
-        //   }
-
-        // @Usage
-        // Use to iterate through entries in any tag that returns a list
-        // - foreach <server.list_online_players> {
-        //     - narrate "Thanks for coming to our server! Here's a bonus $50.00!"
-        //     - give <def[value]> money qty:50
-        //   }
-
-        // -->
-        registerCoreMember(ForEachCommand.class,
-                "FOREACH", "foreach [stop/next/<object>|...] [<commands>]", 1);
 
 
         // <--[command]
@@ -1283,11 +1277,19 @@ public class BukkitCommandRegistry extends CommandRegistry {
         // @Author aufdemrand, Jeebiss, Morphan1, mcmonkey
         // @Group entity
         // @Description
-        // TODO: Document Command Details
+        // This command heals a player, list of players, entity or list of entities. If no amount is specified it will
+        // heal the specified player(s)/entity(s) fully.
         // @Tags
         // <e@entity.health>
         // @Usage
-        // TODO: Document Command Details
+        // Use to fully heal a player
+        // - heal
+        // @Usage
+        // Use to heal a player 5 hearts
+        // - heal 10
+        // @Usage
+        // Use to heal a player by the name of Morphan1 fully
+        // - heal p@Morphan1
         // -->
         registerCoreMember(HealCommand.class,
                 "HEAL", "heal (<#.#>) ({player}/<entity>|...)", 0);
@@ -1351,26 +1353,6 @@ public class BukkitCommandRegistry extends CommandRegistry {
 
 
         // <--[command]
-        // @Name If
-        // @Syntax if [<value>] (!)(<operator> <value>) (&&/|| ...) [<commands>] (else <commands>)
-        // @Required 1
-        // @Stable stable
-        // @Short Compares values, and runs one script if they match, or a different script if they don't match.
-        // @Author aufdemrand, David Cernat
-        // @Group core
-        // @Video /denizen/vids/Alternate/Dynamic%20Actions:%20The%20If%20Command
-        // @Description
-        // TODO: Document Command Details
-        // @Tags
-        // <el@element.is[<operator>].to[<element>]>
-        // @Usage
-        // TODO: Document Command Details
-        // -->
-        registerCoreMember(IfCommand.class,
-                "IF", "if [<value>] (!)(<operator> <value>) (&&/|| ...) [<commands>] (else <commands>)", 2);
-
-
-        // <--[command]
         // @Name Inventory
         // @Syntax inventory [open/close/copy/move/swap/add/remove/set/keep/exclude/fill/clear/update] (destination:<inventory>) (origin:<inventory>/<item>|...) (slot:<#>)
         // @Required 1
@@ -1423,6 +1405,7 @@ public class BukkitCommandRegistry extends CommandRegistry {
         // @Required 1
         // @Stable stable
         // @Short Runs a script in the current ScriptQueue.
+        // @Video /denizen/vids/Run%20And%20Inject
         // @Author aufdemrand
         // @Group core
         // @Description
@@ -1480,6 +1463,33 @@ public class BukkitCommandRegistry extends CommandRegistry {
         // -->
         registerCoreMember(LeashCommand.class,
                 "LEASH", "leash (cancel) [<entity>|...] (holder:<entity>/<location>)", 1);
+
+
+        // <--[command]
+        // @Name Light
+        // @Syntax light [<location>] [<#>/reset] (duration:<duration>)
+        // @Required 2
+        // @Stable stable
+        // @Short Creates a light source at the location with a specified brightness.
+        // @Author Morphan1
+        // @Group world
+        // @Description
+        // This command can create and reset a light source at a specified location, regardless of the type
+        // of block. It will be shown to all players near the location until it is reset.
+        // The brightness must be between 0 and 15, inclusive.
+        // Optionally, specify the amount of time the light should exist before being removed.
+        // @Tags
+        // <l@location.light>
+        // <l@location.light.blocks>
+        // @Usage
+        // Use to create a bright light at a noted location.
+        // - light l@MyFancyLightOfWool 15
+        // @Usage
+        // Use to reset the brightness of the location to its original state.
+        // - light l@MyFancyLightOfWool reset
+        // -->
+        registerCoreMember(LightCommand.class,
+                "LIGHT", "light [<location>] [<#>/reset] (duration:<duration>)", 2);
 
 
         // <--[command]
@@ -1754,7 +1764,7 @@ public class BukkitCommandRegistry extends CommandRegistry {
 
         // <--[command]
         // @Name ModifyBlock
-        // @Syntax modifyblock [<location>|.../<ellipsoid>/<cuboid>] [<material>|...] (radius:<#>) (height:<#>) (depth:<#>) (no_physics/naturally) (delayed) (<script>)
+        // @Syntax modifyblock [<location>|.../<ellipsoid>/<cuboid>] [<material>|...] (radius:<#>) (height:<#>) (depth:<#>) (no_physics/naturally) (delayed) (<script>) (<percentages>)
         // @Required 2
         // @Stable stable
         // @Short Modifies blocks.
@@ -1765,6 +1775,7 @@ public class BukkitCommandRegistry extends CommandRegistry {
         // in only the specified blocks being changed. Use 'no_physics' to place the blocks without
         // physics taking over the modified blocks. This is useful for block types such as portals. This does NOT
         // control physics for an extended period of time.
+        // Specify <percentages> to give a chance of each material being placed (in any materail at all).
         // Use 'naturally' when setting a block to air to break it naturally, meaning that it will drop items.
         // Use 'delayed' to make the modifyblock slowly edit blocks at a time pace roughly equivalent to the server's limits.
         // Note that specify a list of locations will take more time in parsing than in the actual block modification.
@@ -1778,6 +1789,9 @@ public class BukkitCommandRegistry extends CommandRegistry {
         // @Usage
         // Use to modify an entire cuboid to half stone, half dirt.
         // - modifyblock cu@<player.location>|<player.location.cursor_on> li@stone|dirt
+        // @Usage
+        // Use to modify an entire cuboid to some stone, some dirt, and some left as it is.
+        // - modifyblock cu@<player.location>|<player.location.cursor_on> li@stone|dirt li@25|25
         // @Usage
         // TODO: Document Command Details
         // -->
@@ -1877,7 +1891,7 @@ public class BukkitCommandRegistry extends CommandRegistry {
 
         // <--[command]
         // @Name PlayEffect
-        // @Syntax playeffect [<location>|...] [effect:<name>] (data:<#.#>) (visibility:<#.#>) (qty:<#>) (offset:<#.#>) (targets:<player>|...)
+        // @Syntax playeffect [<location>|...] [effect:<name>] (data:<#.#>) (visibility:<#.#>) (qty:<#>) (offset:<#.#>,<#.#>,<#.#>) (targets:<player>|...)
         // @Required 2
         // @Stable stable
         // @Short Plays a visible or audible effect at the location.
@@ -1892,7 +1906,7 @@ public class BukkitCommandRegistry extends CommandRegistry {
         // TODO: Document Command Details
         // -->
         registerCoreMember(PlayEffectCommand.class,
-                "PLAYEFFECT", "playeffect [<location>|...] [effect:<name>] (data:<#.#>) (visibility:<#.#>) (qty:<#>) (offset:<#.#>) (targets:<player>|...)", 2);
+                "PLAYEFFECT", "playeffect [<location>|...] [effect:<name>] (data:<#.#>) (visibility:<#.#>) (qty:<#>) (offset:<#.#>,<#.#>,<#.#>) (targets:<player>|...)", 2);
 
 
         // <--[command]
@@ -2044,7 +2058,8 @@ public class BukkitCommandRegistry extends CommandRegistry {
         // TODO: Document Command Details
 
         // @Tags
-        // None
+        // <entry[saveName].possibilities> returns an Element of the possibility count.
+        // <entry[saveName].selected> returns an Element of the selected number.
 
         // @Usage
         // Use to choose randomly from the following commands
@@ -2187,6 +2202,7 @@ public class BukkitCommandRegistry extends CommandRegistry {
         // @Required 1
         // @Stable stable
         // @Short Runs a script in a new ScriptQueue.
+        // @Video /denizen/vids/Run%20And%20Inject
         // @Author aufdemrand
         // @Group core
         // @Description
@@ -2218,6 +2234,55 @@ public class BukkitCommandRegistry extends CommandRegistry {
         // -->
         registerCoreMember(RuntaskCommand.class,
                 "RUNTASK", "runtask [<name>] (instantly) (queue(:<name>)) (delay:<#>) (define:<element>|...)", 1);
+
+
+        // <--[command]
+        // @Name Schematic
+        // @Syntax schematic [create/load/unload/rotate/paste/save] [name:<name>] (angle:<#>) (<location>) (<cuboid>) (delayed)
+        // @Group World
+        // @Required 2
+        // @Stable unstable
+        // @Short Creates, loads, pastes, and saves schematics (Sets of blocks).
+        // @Author mcmonkey
+
+        // @Description
+        // Todo
+
+        // @Tags
+        // <schematic[<name>].height>
+        // <schematic[<name>].length>
+        // <schematic[<name>].width>
+        // <schematic[<name>].block[<location>]>
+        // <schematic[<name>].origin>
+        // <schematic[<name>].blocks>
+
+        // @Usage
+        // Use to create a new schematic from a cuboid and an origin location
+        // - schematic create name:MySchematic cu@<player.location.sub[5,5,5]>|<player.location.add[5,5,5]> <player.location>
+
+        // @Usage
+        // Use to load a schematic
+        // - schematic load name:MySchematic
+
+        // @Usage
+        // Use to unload a schematic
+        // - schematic unload name:MySchematic
+
+        // @Usage
+        // Use to rotate a loaded schematic
+        // - schematic rotate name:MySchematic angle:90
+
+        // @Usage
+        // Use to paste a loaded schematic
+        // - schematic paste name:MySchematic <player.location> noair
+
+        // @Usage
+        // Use to save a created schematic
+        // - schematic save name:MySchematic
+
+        // -->
+        registerCoreMember(SchematicCommand.class,
+                "SCHEMATIC", "schematic [create/load/unload/rotate/paste/save] [name:<name>] (angle:<#>) (<location>) (<cuboid>) (delayed)", 2);
 
 
         // <--[command]
@@ -2420,11 +2485,11 @@ public class BukkitCommandRegistry extends CommandRegistry {
 
         // <--[command]
         // @Name ShowFake
-        // @Syntax showfake [<material>/cancel] [<location>|...] (players:<player>|...) (d:<duration>{10s})
+        // @Syntax showfake [<material>|.../cancel] [<location>|...] (players:<player>|...) (d:<duration>{10s})
         // @Required 2
         // @Stable stable
         // @Short Makes the player see a block change that didn't actually happen.
-        // @Author aufdemrand, Morphan1
+        // @Author aufdemrand, Morphan1, mcmonkey
         // @Group player
         // @Description
         // TODO: Document Command Details
@@ -2434,7 +2499,7 @@ public class BukkitCommandRegistry extends CommandRegistry {
         // TODO: Document Command Details
         // -->
         registerCoreMember(ShowFakeCommand.class,
-                "SHOWFAKE", "showfake [<material>/cancel] [<location>|...] (players:<player>|...) (d:<duration>{10s})", 2);
+                "SHOWFAKE", "showfake [<material>|.../cancel] [<location>|...] (players:<player>|...) (d:<duration>{10s})", 2);
 
 
         // <--[command]
@@ -2489,7 +2554,7 @@ public class BukkitCommandRegistry extends CommandRegistry {
         // TODO: Document Command Details
         // @Tags
         // <e@entity.is_spawned>
-        // <util.entity_is_spawned[<entity>]>
+        // <server.entity_is_spawned[<entity>]>
         // <entry[saveName].spawned_entities> returns a list of entities that were spawned.
         // @Usage
         // TODO: Document Command Details
@@ -2500,7 +2565,7 @@ public class BukkitCommandRegistry extends CommandRegistry {
 
         // <--[command]
         // @Name SQL
-        // @Syntax sql [id:<ID>] [disconnect/connect:<server>/query:<query>/update:<update>] (username:<username>) (password:<password>)
+        // @Syntax sql [id:<ID>] [disconnect/connect:<server> (username:<username>) (password:<password>)/query:<query>/update:<update>]
         // @Required 1
         // @Stable unstable
         // @Short Interacts with a MySQL server.
@@ -2518,7 +2583,7 @@ public class BukkitCommandRegistry extends CommandRegistry {
         // It is recommended you hold the connection command by doing "- ~sql ..." rather than just "- sql ..."
         // as this will delay the commands following the connect command until after the connection is established.
         // @Tags
-        // <entry[saveName].result> returns a dList of all rows from a query or update command.
+        // <entry[saveName].result> returns a dList of all rows from a query or update command, of the form li@escaped_text/escaped_text|escaped_text/escaped_text
         // <entry[saveName].affected_rows> returns how many rows were affected by an update command.
         // @Usage
         // Use to connect to an SQL server.
@@ -2545,7 +2610,7 @@ public class BukkitCommandRegistry extends CommandRegistry {
         // - sql disconnect id:name
         // -->
         registerCoreMember(SQLCommand.class,
-                "SQL", "sql [id:<ID>] [disconnect/connect:<server>/query:<query>/update:<update>] (username:<username>) (password:<password>)", 2);
+                "SQL", "sql [id:<ID>] [disconnect/connect:<server> (username:<username>) (password:<password>)/query:<query>/update:<update>]", 2);
 
 
         // <--[command]
@@ -2644,6 +2709,30 @@ public class BukkitCommandRegistry extends CommandRegistry {
                 "TAKE", "take [money/iteminhand/bydisplay:<name>/bycover:<title>|<author>/slot:<#>/<item>|...] (qty:<#>) (from:<inventory>)", 1);
 
         // <--[command]
+        // @Name Team
+        // @Syntax team (id:<scoreboard>/{main}) [name:<team>] (add:<player>|...) (remove:<player>|...) (prefix:<prefix>) (suffix:<suffix>)
+        // @Required 2
+        // @Stable stable
+        // @Short Controls scoreboard teams.
+        // @Author Morphan1
+        // @Group player
+        // @Description
+        // The Team command allows you to add modify a team's prefix and suffix, as well as adding
+        // and removing players from teams.
+        // NOTE: Prefixes and suffixes cannot be longer than 16 characters!
+        // @Tags
+        // None
+        // @Usage
+        // Use to add a player to a team.
+        // - team name:red add:<player>
+        // @Usage
+        // Use to change the prefix for a team.
+        // - team name:red "prefix:[<red>Red Team<reset>]"
+        // -->
+        registerCoreMember(TeamCommand.class,
+                "TEAM", "team (id:<scoreboard>/{main}) [name:<team>] (add:<player>|...) (remove:<player>|...) (prefix:<prefix>) (suffix:<suffix>)", 2);
+
+        // <--[command]
         // @Name Teleport
         // @Syntax teleport (<entity>|...) [<location>]
         // @Required 1
@@ -2663,7 +2752,7 @@ public class BukkitCommandRegistry extends CommandRegistry {
 
         // <--[command]
         // @Name Time
-        // @Syntax time [{global}/player] [<time duration>] (<world>)
+        // @Syntax time ({global}/player) [<time duration>] (<world>)
         // @Required 1
         // @Stable TODO: Document Command Details
         // @Short Changes the current time in the minecraft world.
@@ -2690,7 +2779,7 @@ public class BukkitCommandRegistry extends CommandRegistry {
         // TODO: Document Command Details
         // -->
         registerCoreMember(TimeCommand.class,
-                "TIME", "time [{global}/player] [<time duration>] (<world>)", 1);
+                "TIME", "time ({global}/player) [<time duration>] (<world>)", 1);
 
         // <--[command]
         // @Name Title
@@ -2824,7 +2913,7 @@ public class BukkitCommandRegistry extends CommandRegistry {
 
         // <--[command]
         // @Name Walk
-        // @Syntax walk (<entity>|...) [<location>] (speed:<#.#>) (auto_range) (radius:<#.#>)
+        // @Syntax walk (<entity>|...) [<location>/stop] (speed:<#.#>) (auto_range) (radius:<#.#>)
         // @Required 1
         // @Stable stable
         // @Short Causes an entity or list of entities to walk to another location.
@@ -2841,7 +2930,7 @@ public class BukkitCommandRegistry extends CommandRegistry {
         // TODO: Document Command Details
         // -->
         registerCoreMember(WalkCommand.class,
-                "WALK, WALKTO", "walk (<entity>|...) [<location>] (speed:<#>) (auto_range) (radius:<#.#>)", 1);
+                "WALK, WALKTO", "walk (<entity>|...) [<location>/stop] (speed:<#>) (auto_range) (radius:<#.#>)", 1);
 
         // <--[command]
         // @Name Weather
@@ -2897,7 +2986,7 @@ public class BukkitCommandRegistry extends CommandRegistry {
         // @Required 2
         // @Stable stable
         // @Short Edits a YAML configuration file.
-        // @Author aufdemrand
+        // @Author aufdemrand, mcmonkey
         // @Group core
         // @Description
         // Edits a YAML configuration file.

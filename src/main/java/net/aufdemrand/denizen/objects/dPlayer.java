@@ -1,23 +1,27 @@
 package net.aufdemrand.denizen.objects;
 
 import net.aufdemrand.denizen.flags.FlagManager;
-import net.aufdemrand.denizen.objects.properties.Property;
-import net.aufdemrand.denizen.objects.properties.PropertyParser;
 import net.aufdemrand.denizen.scripts.commands.core.FailCommand;
 import net.aufdemrand.denizen.scripts.commands.core.FinishCommand;
-import net.aufdemrand.denizen.tags.Attribute;
 import net.aufdemrand.denizen.tags.core.PlayerTags;
 import net.aufdemrand.denizen.utilities.DenizenAPI;
+import net.aufdemrand.denizen.utilities.PlayerProfileEditor;
 import net.aufdemrand.denizen.utilities.debugging.dB;
 import net.aufdemrand.denizen.utilities.depends.Depends;
 import net.aufdemrand.denizen.utilities.nbt.ImprovedOfflinePlayer;
 import net.aufdemrand.denizen.utilities.packets.*;
+import net.aufdemrand.denizencore.objects.*;
+import net.aufdemrand.denizencore.objects.properties.Property;
+import net.aufdemrand.denizencore.objects.properties.PropertyParser;
+import net.aufdemrand.denizencore.tags.Attribute;
+import net.aufdemrand.denizencore.tags.TagContext;
+import net.aufdemrand.denizencore.utilities.CoreUtilities;
 import net.citizensnpcs.api.CitizensAPI;
 import net.citizensnpcs.api.npc.NPC;
-import net.minecraft.server.v1_8_R1.PacketPlayOutGameStateChange;
+import net.minecraft.server.v1_8_R3.PacketPlayOutGameStateChange;
 import org.bukkit.*;
 import org.bukkit.block.Block;
-import org.bukkit.craftbukkit.v1_8_R1.entity.CraftPlayer;
+import org.bukkit.craftbukkit.v1_8_R3.entity.CraftPlayer;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.LivingEntity;
@@ -27,6 +31,7 @@ import org.bukkit.inventory.CraftingInventory;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.map.MapView;
+import org.bukkit.potion.PotionEffect;
 import org.bukkit.util.BlockIterator;
 
 import java.util.*;
@@ -83,9 +88,14 @@ public class dPlayer implements dObject, Adjustable {
     // are case insensitive.
     // -->
 
-    @Fetchable("p")
+
     public static dPlayer valueOf(String string) {
-        return valueOfInternal(string, true);
+        return valueOf(string, null);
+    }
+
+    @Fetchable("p")
+    public static dPlayer valueOf(String string, TagContext context) {
+        return valueOfInternal(string, context == null || context.debug);
     }
 
 
@@ -168,9 +178,9 @@ public class dPlayer implements dObject, Adjustable {
     }
 
     public dPlayer(Player player) {
-        this((OfflinePlayer)player);
-        if (Depends.citizens != null && CitizensAPI.getNPCRegistry().isNPC(player))
-            NPCPlayer = player;
+        this((OfflinePlayer) player);
+        if (dEntity.isNPC(player))
+            throw new IllegalStateException("NPCs are not allowed as dPlayer objects!");
     }
 
 
@@ -180,14 +190,11 @@ public class dPlayer implements dObject, Adjustable {
 
     OfflinePlayer offlinePlayer = null;
 
-    Player NPCPlayer = null;
-
     public boolean isValid() {
         return getPlayerEntity() != null || getOfflinePlayer() != null;
     }
 
     public Player getPlayerEntity() {
-        if (NPCPlayer != null) return NPCPlayer;
         if (offlinePlayer == null) return null;
         return Bukkit.getPlayer(offlinePlayer.getUniqueId());
     }
@@ -295,56 +302,65 @@ public class dPlayer implements dObject, Adjustable {
 
     public void decrementStatistic(Statistic statistic, int amount) {
         if (isOnline()) getPlayerEntity().decrementStatistic(statistic, amount);
-        else {}// TODO: write to JSON?
+        else {
+        }// TODO: write to JSON?
     }
 
     public void decrementStatistic(Statistic statistic, EntityType entity, int amount) {
         if (isOnline() && statistic.getType() == Statistic.Type.ENTITY)
             getPlayerEntity().decrementStatistic(statistic, entity, amount);
-        else {}// TODO: write to JSON?
+        else {
+        }// TODO: write to JSON?
     }
 
     public void decrementStatistic(Statistic statistic, Material material, int amount) {
         if (isOnline() && (statistic.getType() == Statistic.Type.BLOCK
                 || statistic.getType() == Statistic.Type.ITEM))
             getPlayerEntity().decrementStatistic(statistic, material, amount);
-        else {}// TODO: write to JSON?
+        else {
+        }// TODO: write to JSON?
     }
 
     public void incrementStatistic(Statistic statistic, int amount) {
         if (isOnline()) getPlayerEntity().incrementStatistic(statistic, amount);
-        else {}// TODO: write to JSON?
+        else {
+        }// TODO: write to JSON?
     }
 
     public void incrementStatistic(Statistic statistic, EntityType entity, int amount) {
         if (isOnline() && statistic.getType() == Statistic.Type.ENTITY)
             getPlayerEntity().incrementStatistic(statistic, entity, amount);
-        else {}// TODO: write to JSON?
+        else {
+        }// TODO: write to JSON?
     }
 
     public void incrementStatistic(Statistic statistic, Material material, int amount) {
         if (isOnline() && (statistic.getType() == Statistic.Type.BLOCK
                 || statistic.getType() == Statistic.Type.ITEM))
             getPlayerEntity().incrementStatistic(statistic, material, amount);
-        else {}// TODO: write to JSON?
+        else {
+        }// TODO: write to JSON?
     }
 
     public void setStatistic(Statistic statistic, int amount) {
         if (isOnline()) getPlayerEntity().setStatistic(statistic, amount);
-        else {}// TODO: write to JSON?
+        else {
+        }// TODO: write to JSON?
     }
 
     public void setStatistic(Statistic statistic, EntityType entity, int amount) {
         if (isOnline() && statistic.getType() == Statistic.Type.ENTITY)
             getPlayerEntity().setStatistic(statistic, entity, amount);
-        else {}// TODO: write to JSON?
+        else {
+        }// TODO: write to JSON?
     }
 
     public void setStatistic(Statistic statistic, Material material, int amount) {
         if (isOnline() && (statistic.getType() == Statistic.Type.BLOCK
                 || statistic.getType() == Statistic.Type.ITEM))
             getPlayerEntity().setStatistic(statistic, material, amount);
-        else {}// TODO: write to JSON?
+        else {
+        }// TODO: write to JSON?
     }
 
     public boolean isOnline() {
@@ -572,10 +588,12 @@ public class dPlayer implements dObject, Adjustable {
                         .getAttribute(attribute.fulfill(2));
             if (attribute.getAttribute(2).equalsIgnoreCase("size") && !FlagManager.playerHasFlag(this, flag_name))
                 return new Element(0).getAttribute(attribute.fulfill(2));
-            if (FlagManager.playerHasFlag(this, flag_name))
-                return new dList(DenizenAPI.getCurrentInstance().flagManager()
-                        .getPlayerFlag(this, flag_name))
+            if (FlagManager.playerHasFlag(this, flag_name)) {
+                FlagManager.Flag flag = DenizenAPI.getCurrentInstance().flagManager()
+                        .getPlayerFlag(this, flag_name);
+                return new dList(flag.toString(), true, flag.values())
                         .getAttribute(attribute.fulfill(1));
+            }
             return new Element(identify()).getAttribute(attribute);
         }
 
@@ -606,18 +624,20 @@ public class dPlayer implements dObject, Adjustable {
             dList searchFlags = null;
             if (!allFlags.isEmpty() && attribute.hasContext(1)) {
                 searchFlags = new dList();
-                String search = attribute.getContext(1).toLowerCase();
+                String search = attribute.getContext(1);
                 if (search.startsWith("regex:")) {
                     try {
-                        Pattern pattern = Pattern.compile(search.substring(6));
+                        Pattern pattern = Pattern.compile(search.substring(6), Pattern.CASE_INSENSITIVE);
                         for (String flag : allFlags)
                             if (pattern.matcher(flag).matches())
                                 searchFlags.add(flag);
-                    } catch (Exception e) {
+                    }
+                    catch (Exception e) {
                         dB.echoError(e);
                     }
                 }
                 else {
+                    search = CoreUtilities.toLowerCase(search);
                     for (String flag : allFlags)
                         if (flag.toLowerCase().contains(search))
                             searchFlags.add(flag);
@@ -634,7 +654,8 @@ public class dPlayer implements dObject, Adjustable {
                 try {
                     outcome = DenizenAPI.getCurrentInstance().getSaves().getString("Players." + getName() + ".Scripts."
                             + dScript.valueOf(attribute.getContext(1)).getName() + ".Current Step");
-                } catch (Exception e) {
+                }
+                catch (Exception e) {
                     outcome = "null";
                 }
             }
@@ -655,7 +676,7 @@ public class dPlayer implements dObject, Adjustable {
         // -->
 
         if (attribute.startsWith("money")) {
-            if(Depends.economy != null) {
+            if (Depends.economy != null) {
 
                 // <--[tag]
                 // @attribute <p@player.money.currency_singular>
@@ -682,7 +703,8 @@ public class dPlayer implements dObject, Adjustable {
                 return new Element(Depends.economy.getBalance(getName())) // TODO: Vault UUID support?
                         .getAttribute(attribute.fulfill(1));
 
-            } else {
+            }
+            else {
                 if (!attribute.hasAlternative())
                     dB.echoError("No economy loaded! Have you installed Vault and a compatible economy plugin?");
                 return null;
@@ -732,17 +754,16 @@ public class dPlayer implements dObject, Adjustable {
                         String context = attribute.getContext(1);
                         if (context.toLowerCase().startsWith("li@"))
                             context = context.substring(3);
-                        for (String ent: context.split("\\|")) {
+                        for (String ent : context.split("\\|")) {
                             boolean valid = false;
 
-                            if (ent.equalsIgnoreCase("npc") && Depends.citizens != null
-                                    && CitizensAPI.getNPCRegistry().isNPC(entity)) {
+                            if (ent.equalsIgnoreCase("npc") && dEntity.isCitizensNPC(entity)) {
                                 valid = true;
                             }
                             else if (dEntity.matches(ent)) {
                                 // only accept generic entities that are not NPCs
                                 if (dEntity.valueOf(ent).isGeneric()) {
-                                    if (Depends.citizens == null || !CitizensAPI.getNPCRegistry().isNPC(entity)) {
+                                    if (dEntity.isCitizensNPC(entity)) {
                                         valid = true;
                                     }
                                 }
@@ -752,7 +773,8 @@ public class dPlayer implements dObject, Adjustable {
                             }
                             if (valid) possibleTargets.add((LivingEntity) entity);
                         }
-                    } else { // no entity type specified
+                    }
+                    else { // no entity type specified
                         possibleTargets.add((LivingEntity) entity);
                         entity.getType();
                     }
@@ -803,6 +825,15 @@ public class dPlayer implements dObject, Adjustable {
             return null;
         }
 
+        // workaround for <e@entity.list_effects>
+        if (attribute.startsWith("list_effects")) {
+            dList effects = new dList();
+            for (PotionEffect effect : getPlayerEntity().getActivePotionEffects()) {
+                effects.add(effect.getType().getName() + "," + effect.getAmplifier() + "," + effect.getDuration() + "t");
+            }
+            return effects.getAttribute(attribute.fulfill(1));
+        }
+
         // <--[tag]
         // @attribute <p@player.list>
         // @returns dList(dPlayer)
@@ -822,7 +853,7 @@ public class dPlayer implements dObject, Adjustable {
             // If you need it anywhere else, use <server.list_online_players>**
             // -->
             if (attribute.startsWith("list.online")) {
-                for(Player player : Bukkit.getOnlinePlayers())
+                for (Player player : Bukkit.getOnlinePlayers())
                     players.add(player.getName());
                 return new dList(players).getAttribute(attribute.fulfill(2));
             }
@@ -835,14 +866,14 @@ public class dPlayer implements dObject, Adjustable {
             // ** NOTE: This tag is old. Please instead use <server.list_offline_players> **
             // -->
             else if (attribute.startsWith("list.offline")) {
-                for(OfflinePlayer player : Bukkit.getOfflinePlayers()) {
+                for (OfflinePlayer player : Bukkit.getOfflinePlayers()) {
                     if (!player.isOnline())
                         players.add("p@" + player.getUniqueId().toString());
                 }
                 return new dList(players).getAttribute(attribute.fulfill(2));
             }
             else {
-                for(OfflinePlayer player : Bukkit.getOfflinePlayers())
+                for (OfflinePlayer player : Bukkit.getOfflinePlayers())
                     players.add("p@" + player.getUniqueId().toString());
                 return new dList(players).getAttribute(attribute.fulfill(1));
             }
@@ -860,6 +891,17 @@ public class dPlayer implements dObject, Adjustable {
         else if (attribute.startsWith("uuid") && !isOnline())
             // This can be parsed later with more detail if the player is online, so only check for offline.
             return new Element(offlinePlayer.getUniqueId().toString()).getAttribute(attribute.fulfill(1));
+
+        // <--[tag]
+        // @attribute <p@player.type>
+        // @returns Element
+        // @description
+        // Always returns 'Player' for dPlayer objects. All objects fetchable by the Object Fetcher will return the
+        // type of object that is fulfilling this attribute.
+        // -->
+        if (attribute.startsWith("type")) {
+            return new Element("Player").getAttribute(attribute.fulfill(1));
+        }
 
         // <--[tag]
         // @attribute <p@player.save_name>
@@ -884,9 +926,13 @@ public class dPlayer implements dObject, Adjustable {
         // it doesn't exist.
         // Works with offline players.
         // -->
-        if (attribute.startsWith("bed_spawn"))
+        if (attribute.startsWith("bed_spawn")) {
+            if (getOfflinePlayer().getBedSpawnLocation() == null) {
+                return null;
+            }
             return new dLocation(getOfflinePlayer().getBedSpawnLocation())
                     .getAttribute(attribute.fulfill(1));
+        }
 
         // If online, let dEntity handle location tags since there are more options
         // for online Players
@@ -1029,7 +1075,7 @@ public class dPlayer implements dObject, Adjustable {
                 return null;
             }
             dList list = new dList();
-            for (String group: Depends.permissions.getGroups()) {
+            for (String group : Depends.permissions.getGroups()) {
                 if (Depends.permissions.playerInGroup(null, offlinePlayer, group)) {
                     list.add(group);
                 }
@@ -1082,7 +1128,7 @@ public class dPlayer implements dObject, Adjustable {
                 return new Element(Depends.permissions.playerInGroup(attribute.getContext(2), getName(), group)) // TODO: Vault UUID support?
                         .getAttribute(attribute.fulfill(2));
 
-            // Permission in current world
+                // Permission in current world
             else if (isOnline())
                 return new Element(Depends.permissions.playerInGroup(getPlayerEntity(), group))
                         .getAttribute(attribute.fulfill(1));
@@ -1100,13 +1146,6 @@ public class dPlayer implements dObject, Adjustable {
 
             String permission = attribute.getContext(1);
 
-            if (Depends.permissions == null) {
-                if (!attribute.hasAlternative()) {
-                    dB.echoError("No permission system loaded! Have you installed Vault and a compatible permissions plugin?");
-                }
-                return null;
-            }
-
             // <--[tag]
             // @attribute <p@player.has_permission[permission.node].global>
             // @returns Element(Boolean)
@@ -1117,24 +1156,40 @@ public class dPlayer implements dObject, Adjustable {
             // -->
 
             // Non-world specific permission
-            if (attribute.getAttribute(2).startsWith("global"))
+            if (attribute.getAttribute(2).startsWith("global")) {
+                if (Depends.permissions == null) {
+                    if (!attribute.hasAlternative()) {
+                        dB.echoError("No permission system loaded! Have you installed Vault and a compatible permissions plugin?");
+                    }
+                    return null;
+                }
+
                 return new Element(Depends.permissions.has((World) null, getName(), permission)) // TODO: Vault UUID support?
                         .getAttribute(attribute.fulfill(2));
+            }
 
-                // <--[tag]
-                // @attribute <p@player.has_permission[permission.node].world>
-                // @returns Element(Boolean)
-                // @description
-                // returns whether the player has the specified node in regards to the
-                // player's current world.
-                // (Works with offline players)
-                // (Note: This may or may not be functional with your permissions system.)
-                // -->
+            // <--[tag]
+            // @attribute <p@player.has_permission[permission.node].world[<world name>]>
+            // @returns Element(Boolean)
+            // @description
+            // returns whether the player has the specified node in regards to the
+            // specified world.
+            // (Works with offline players)
+            // (Note: This may or may not be functional with your permissions system.)
+            // -->
 
-                // Permission in certain world
-            else if (attribute.getAttribute(2).startsWith("world"))
+            // Permission in certain world
+            else if (attribute.getAttribute(2).startsWith("world")) {
+                if (Depends.permissions == null) {
+                    if (!attribute.hasAlternative()) {
+                        dB.echoError("No permission system loaded! Have you installed Vault and a compatible permissions plugin?");
+                    }
+                    return null;
+                }
+
                 return new Element(Depends.permissions.has(attribute.getContext(2), getName(), permission)) // TODO: Vault UUID support?
                         .getAttribute(attribute.fulfill(2));
+            }
 
             // Permission in current world
             else if (isOnline())
@@ -1257,6 +1312,7 @@ public class dPlayer implements dObject, Adjustable {
         if (attribute.startsWith("ip") ||
                 attribute.startsWith("host_name")) {
             attribute = attribute.fulfill(1);
+            String host = getPlayerEntity().getAddress().getHostName();
             // <--[tag]
             // @attribute <p@player.ip.address>
             // @returns Element
@@ -1267,7 +1323,7 @@ public class dPlayer implements dObject, Adjustable {
                 return new Element(getPlayerEntity().getAddress().toString())
                         .getAttribute(attribute.fulfill(1));
 
-            return new Element(getPlayerEntity().getAddress().getHostName())
+            return new Element(host)
                     .getAttribute(attribute);
         }
 
@@ -1444,7 +1500,7 @@ public class dPlayer implements dObject, Adjustable {
             // @attribute <p@player.gamemode.id>
             // @returns Element(Number)
             // @description
-            // returns the gamemode ID of the player. 0 = survival, 1 = creative, 2 = adventure
+            // returns the gamemode ID of the player. 0 = survival, 1 = creative, 2 = adventure, 3 = spectator
             // -->
             if (attribute.startsWith("id"))
                 return new Element(getPlayerEntity().getGameMode().getValue())
@@ -1462,6 +1518,17 @@ public class dPlayer implements dObject, Adjustable {
         if (attribute.startsWith("is_blocking"))
             return new Element(getPlayerEntity().isBlocking())
                     .getAttribute(attribute.fulfill(1));
+
+        // <--[tag]
+        // @attribute <p@player.ping>
+        // @returns Element(Number)
+        // @description
+        // returns the player's current ping.
+        // -->
+        if (attribute.startsWith("ping")) {
+            return new Element(((CraftPlayer) getPlayerEntity()).getHandle().ping)
+                    .getAttribute(attribute.fulfill(1));
+        }
 
         // <--[tag]
         // @attribute <p@player.is_flying>
@@ -1522,18 +1589,30 @@ public class dPlayer implements dObject, Adjustable {
             if (attribute.getAttribute(2).startsWith("qualifier")) {
                 if (statistic == null) return null;
                 dObject obj = ObjectFetcher.pickObjectFor(attribute.getContext(2));
-                if (obj instanceof dMaterial)
-                    return new Element(getPlayerEntity().getStatistic(statistic, ((dMaterial) obj).getMaterial()))
-                            .getAttribute(attribute.fulfill(2));
-                else if (obj instanceof dEntity)
-                    return new Element(getPlayerEntity().getStatistic(statistic, ((dEntity) obj).getEntityType()))
-                            .getAttribute(attribute.fulfill(2));
-                else
+                try {
+                    if (obj instanceof dMaterial)
+                        return new Element(getPlayerEntity().getStatistic(statistic, ((dMaterial) obj).getMaterial()))
+                                .getAttribute(attribute.fulfill(2));
+                    else if (obj instanceof dEntity)
+                        return new Element(getPlayerEntity().getStatistic(statistic, ((dEntity) obj).getBukkitEntityType()))
+                                .getAttribute(attribute.fulfill(2));
+                    else
+                        return null;
+                }
+                catch (Exception e) {
+                    dB.echoError("Invalid statistic: " + statistic + " for this player!");
                     return null;
+                }
             }
 
             if (statistic == null) return null;
-            return new Element(getPlayerEntity().getStatistic(statistic)).getAttribute(attribute.fulfill(1));
+            try {
+                return new Element(getPlayerEntity().getStatistic(statistic)).getAttribute(attribute.fulfill(1));
+            }
+            catch (Exception e) {
+                dB.echoError("Invalid statistic: " + statistic + " for this player!");
+                return null;
+            }
         }
 
         // <--[tag]
@@ -1625,17 +1704,6 @@ public class dPlayer implements dObject, Adjustable {
             return new Element(getPlayerEntity().getExp() * 100)
                     .getAttribute(attribute.fulfill(1));
 
-        // <--[tag]
-        // @attribute <p@player.type>
-        // @returns Element
-        // @description
-        // Always returns 'Player' for dPlayer objects. All objects fetchable by the Object Fetcher will return the
-        // type of object that is fulfilling this attribute.
-        // -->
-        if (attribute.startsWith("type")) {
-            return new Element("Player").getAttribute(attribute.fulfill(1));
-        }
-
         // Iterate through this object's properties' attributes
         for (Property property : PropertyParser.getProperties(this)) {
             String returned = property.getAttribute(attribute);
@@ -1698,7 +1766,7 @@ public class dPlayer implements dObject, Adjustable {
         // None
         // -->
         // TODO: Player achievement/statistics tags.
-        if (mechanism.matches("award_achievement")&& mechanism.requireEnum(false, Achievement.values())) {
+        if (mechanism.matches("award_achievement") && mechanism.requireEnum(false, Achievement.values())) {
             getPlayerEntity().awardAchievement(Achievement.valueOf(value.asString().toUpperCase()));
         }
 
@@ -1829,11 +1897,24 @@ public class dPlayer implements dObject, Adjustable {
 
         // <--[mechanism]
         // @object dPlayer
+        // @name flying
+        // @input Element(Boolean)
+        // @description
+        // Sets whether the player is flying.
+        // @tags
+        // <p@player.is_flying>
+        // -->
+        if (mechanism.matches("flying") && mechanism.requireBoolean()) {
+            getPlayerEntity().setFlying(value.asBoolean());
+        }
+
+        // <--[mechanism]
+        // @object dPlayer
         // @name gamemode
         // @input Element
         // @description
         // Sets the game mode of the player.
-        // Valid gamemodes are survival, creative, and adventure.
+        // Valid gamemodes are survival, creative, adventure, and spectator.
         // @tags
         // <p@player.gamemode>
         // <p@player.gamemode.id>
@@ -1947,7 +2028,7 @@ public class dPlayer implements dObject, Adjustable {
         // Sets the time of day the Player is currently experiencing. Setting this will cause the
         // player to have a different time than other Players in the world are experiencing though
         // time will continue to progress. Using the 'reset_time' mechanism, or relogging your player
-        // will reset this mechanism to match the world's current time. Valid range is 0-28000
+        // will reset this mechanism to match the world's current time. Valid range is 0-24000
         // @tags
         // <player.time>
         // -->
@@ -1964,7 +2045,7 @@ public class dPlayer implements dObject, Adjustable {
         // there is a small 'twitch effect' when looking at the sky when time is frozen.
         // Setting this will cause the player to have a different time than other Players in
         // the world are experiencing. Using the 'reset_time' mechanism, or relogging your player
-        // will reset this mechanism to match the world's current time. Valid range is 0-28000
+        // will reset this mechanism to match the world's current time. Valid range is 0-24000
         // @tags
         // <player.time>
         // -->
@@ -2010,7 +2091,7 @@ public class dPlayer implements dObject, Adjustable {
         // Shows the player an entity. (Must be a player or player NPC).
         // -->
         if (mechanism.matches("show_entity") && mechanism.requireObject(dEntity.class)) {
-            getPlayerEntity().showPlayer((Player)value.asType(dEntity.class).getLivingEntity());
+            getPlayerEntity().showPlayer((Player) value.asType(dEntity.class).getLivingEntity());
         }
 
         // <--[mechanism]
@@ -2021,7 +2102,7 @@ public class dPlayer implements dObject, Adjustable {
         // Hides an entity from the player. (Must be a player or player NPC).
         // -->
         if (mechanism.matches("hide_entity") && mechanism.requireObject(dEntity.class)) {
-            getPlayerEntity().hidePlayer((Player)value.asType(dEntity.class).getLivingEntity());
+            getPlayerEntity().hidePlayer((Player) value.asType(dEntity.class).getLivingEntity());
         }
 
         // <--[mechanism]
@@ -2190,8 +2271,8 @@ public class dPlayer implements dObject, Adjustable {
         // Shows the player the end credits.
         // -->
         if (mechanism.matches("show_endcredits")) {
-            ((CraftPlayer)getPlayerEntity()).getHandle().viewingCredits = true;
-            ((CraftPlayer)getPlayerEntity()).getHandle().playerConnection
+            ((CraftPlayer) getPlayerEntity()).getHandle().viewingCredits = true;
+            ((CraftPlayer) getPlayerEntity()).getHandle().playerConnection
                     .sendPacket(new PacketPlayOutGameStateChange(4, 0.0F));
         }
 
@@ -2232,6 +2313,100 @@ public class dPlayer implements dObject, Adjustable {
         // -->
         if (mechanism.matches("edit_sign") && mechanism.requireObject(dLocation.class)) {
             SignEditor.editSign(getPlayerEntity(), value.asType(dLocation.class));
+        }
+
+        // <--[mechanism]
+        // @object dPlayer
+        // @name tab_list_info
+        // @input Element(|Element)
+        // @description
+        // Show the player some text in the header and footer area
+        // in their tab list.
+        // - adjust <player> tab_list_info:<header>|<footer>
+        // -->
+        if (mechanism.matches("tab_list_info")) {
+            if (value.asString().length() > 0) {
+                String[] split = value.asString().split("[\\|" + dList.internal_escape + "]", 2);
+                if (split.length > 0) {
+                    String header = split[0];
+                    String footer = "";
+                    if (split.length > 1) {
+                        footer = split[1];
+                    }
+                    DisplayHeaderFooter.showHeaderFooter(getPlayerEntity(), header, footer);
+                }
+                else {
+                    dB.echoError("Must specify a header and footer to show!");
+                }
+            }
+            else {
+                DisplayHeaderFooter.clearHeaderFooter(getPlayerEntity());
+            }
+        }
+
+        // <--[mechanism]
+        // @object dPlayer
+        // @name sign_update
+        // @input dLocation|dList
+        // @description
+        // Shows the player fake lines on a sign.
+        // -->
+        if (mechanism.matches("sign_update")) {
+            if (value.asString().length() > 0) {
+                String[] split = value.asString().split("[\\|" + dList.internal_escape + "]", 2);
+                if (dLocation.matches(split[0]) && split.length > 1) {
+                    dList lines = dList.valueOf(split[1]);
+                    SignUpdate.updateSign(getPlayerEntity(), dLocation.valueOf(split[0]), lines.toArray(4));
+                }
+                else {
+                    dB.echoError("Must specify a valid location and at least one sign line!");
+                }
+            }
+            else {
+                dB.echoError("Must specify a valid location and at least one sign line!");
+            }
+        }
+
+        // <--[mechanism]
+        // @object dPlayer
+        // @name action_bar
+        // @input Element
+        // @description
+        // Sends the player text in the action bar.
+        // -->
+        if (mechanism.matches("action_bar")) {
+            ActionBar.sendActionBarMessage(getPlayerEntity(), value.asString());
+        }
+
+        // <--[mechanism]
+        // @object dPlayer
+        // @name name
+        // @input Element
+        // @description
+        // Changes the name of this player to the entire server.
+        // -->
+        if (mechanism.matches("name")) {
+            String name = value.asString();
+            if (name.length() > 16)
+                dB.echoError("Must specify a name with no more than 16 characters.");
+            else
+                PlayerProfileEditor.setPlayerName(getPlayerEntity(), value.asString());
+        }
+
+        // <--[mechanism]
+        // @object dPlayer
+        // @name skin
+        // @input Element
+        // @description
+        // Changes the skin of the player to the skin of the given
+        // player name.
+        // -->
+        if (mechanism.matches("skin")) {
+            String name = value.asString();
+            if (name.length() > 16)
+                dB.echoError("Must specify a name with no more than 16 characters.");
+            else
+                PlayerProfileEditor.setPlayerSkin(getPlayerEntity(), value.asString());
         }
 
         // Iterate through this object's properties' mechanisms

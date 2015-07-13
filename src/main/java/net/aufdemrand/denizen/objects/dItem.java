@@ -1,18 +1,23 @@
 package net.aufdemrand.denizen.objects;
 
-import net.aufdemrand.denizen.objects.notable.*;
+import net.aufdemrand.denizen.objects.notable.NotableManager;
 import net.aufdemrand.denizen.objects.properties.item.*;
-import net.aufdemrand.denizen.objects.properties.Property;
-import net.aufdemrand.denizen.objects.properties.PropertyParser;
-import net.aufdemrand.denizen.scripts.ScriptRegistry;
 import net.aufdemrand.denizen.scripts.containers.core.BookScriptContainer;
 import net.aufdemrand.denizen.scripts.containers.core.ItemScriptContainer;
 import net.aufdemrand.denizen.scripts.containers.core.ItemScriptHelper;
-import net.aufdemrand.denizen.tags.Attribute;
+import net.aufdemrand.denizen.tags.BukkitTagContext;
 import net.aufdemrand.denizen.utilities.debugging.dB;
+import net.aufdemrand.denizencore.objects.*;
+import net.aufdemrand.denizencore.objects.notable.Notable;
+import net.aufdemrand.denizencore.objects.notable.Note;
+import net.aufdemrand.denizencore.objects.properties.Property;
+import net.aufdemrand.denizencore.objects.properties.PropertyParser;
+import net.aufdemrand.denizencore.scripts.ScriptRegistry;
+import net.aufdemrand.denizencore.tags.Attribute;
+import net.aufdemrand.denizencore.tags.TagContext;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
-import org.bukkit.craftbukkit.v1_8_R1.inventory.CraftItemStack;
+import org.bukkit.craftbukkit.v1_8_R3.inventory.CraftItemStack;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Item;
 import org.bukkit.inventory.ItemStack;
@@ -44,21 +49,30 @@ public class dItem implements dObject, Notable, Adjustable {
     //    OBJECT FETCHER
     ////////////////
 
-    @Fetchable("i")
+
     public static dItem valueOf(String string) {
-        return valueOf(string, null, null);
+        return valueOf(string, null);
+    }
+
+    @Fetchable("i")
+    public static dItem valueOf(String string, TagContext context) {
+        if (context == null) {
+            return valueOf(string, null, null);
+        }
+        else {
+            return valueOf(string, ((BukkitTagContext) context).player, ((BukkitTagContext) context).npc);
+        }
     }
 
     /**
      * Gets a Item Object from a string form.
      *
-     * @param string  The string or dScript argument String
-     * @param player  The dPlayer to be used for player contexts
-     *                where applicable.
-     * @param npc     The dNPC to be used for NPC contexts
-     *                where applicable.
-     * @return  an Item, or null if incorrectly formatted
-     *
+     * @param string The string or dScript argument String
+     * @param player The dPlayer to be used for player contexts
+     *               where applicable.
+     * @param npc    The dNPC to be used for NPC contexts
+     *               where applicable.
+     * @return an Item, or null if incorrectly formatted
      */
     public static dItem valueOf(String string, dPlayer player, dNPC npc) {
         if (string == null) return null;
@@ -70,7 +84,7 @@ public class dItem implements dObject, Notable, Adjustable {
         // Handle objects with properties through the object fetcher
         m = ObjectFetcher.DESCRIBED_PATTERN.matcher(string);
         if (m.matches()) {
-            return ObjectFetcher.getObjectFrom(dItem.class, string, player, npc);
+            return ObjectFetcher.getObjectFrom(dItem.class, string, new BukkitTagContext(player, npc, false, null, true, null));
         }
 
         ////////
@@ -210,7 +224,7 @@ public class dItem implements dObject, Notable, Adjustable {
     }
 
     public dItem(dMaterial material, int qty) {
-        this(new ItemStack(material.getMaterial(), qty, (short)0, material.getData()));
+        this(new ItemStack(material.getMaterial(), qty, (short) 0, material.getData()));
     }
 
     public dItem(int type, int qty) {
@@ -219,7 +233,7 @@ public class dItem implements dObject, Notable, Adjustable {
 
     public dItem(ItemStack item) {
         if (item == null)
-            this.item = new ItemStack(Material.AIR);
+            this.item = new ItemStack(Material.AIR, 0);
         else
             this.item = item;
     }
@@ -238,6 +252,10 @@ public class dItem implements dObject, Notable, Adjustable {
 
     public ItemStack getItemStack() {
         return item;
+    }
+
+    public void setItemStack(ItemStack item) {
+        this.item = item;
     }
 
     // Compare item to item.
@@ -318,7 +336,8 @@ public class dItem implements dObject, Notable, Adjustable {
         if (isRepairable()) {
             if (compared.getDurability() < compared_to.getDurability())
                 determination++;
-        } else
+        }
+        else
             // Check data
             if (getItemStack().getData().getData() != item.getData().getData()) return -1;
 
@@ -335,9 +354,8 @@ public class dItem implements dObject, Notable, Adjustable {
      * Check whether this item contains a lore that starts
      * with a certain prefix.
      *
-     * @param prefix  The prefix
-     * @return  True if it does, otherwise false
-     *
+     * @param prefix The prefix
+     * @return True if it does, otherwise false
      */
     public boolean containsLore(String prefix) {
 
@@ -356,9 +374,8 @@ public class dItem implements dObject, Notable, Adjustable {
      * Get the lore from this item that starts with a
      * certain prefix.
      *
-     * @param prefix  The prefix
-     * @return  String  The lore
-     *
+     * @param prefix The prefix
+     * @return String  The lore
      */
     public String getLore(String prefix) {
         for (String itemLore : getItemStack().getItemMeta().getLore()) {
@@ -374,8 +391,7 @@ public class dItem implements dObject, Notable, Adjustable {
      * Check whether this item contains the lore specific
      * to item scripts.
      *
-     * @return  True if it does, otherwise false
-     *
+     * @return True if it does, otherwise false
      */
     public boolean isItemscript() {
         return ItemScriptHelper.isItemscript(item);
@@ -458,24 +474,24 @@ public class dItem implements dObject, Notable, Adjustable {
     @Override
     public String identify() {
 
-        if (item == null) return "null";
+        if (item == null) return "i@air";
 
         if (item.getTypeId() != 0) {
 
             // If saved item, return that
             if (isUnique()) {
-                return "i@" + NotableManager.getSavedId(this) + (item.getAmount() == 1 ? "": "[quantity=" + item.getAmount() + "]");
+                return "i@" + NotableManager.getSavedId(this) + PropertyParser.getPropertiesString(this);
             }
 
             // If not a saved item, but is a custom item, return the script id
             else if (isItemscript()) {
-                return "i@" + getScriptName() + (item.getAmount() == 1 ? "": "[quantity=" + item.getAmount() + "]");
+                return "i@" + getScriptName() + PropertyParser.getPropertiesString(this);
             }
         }
 
         // Else, return the material name
-        if (item.getDurability() >= 16 || item.getDurability() < 0) {
-            return "i@" + getMaterial().realName() + "," + item.getDurability()  + PropertyParser.getPropertiesString(this);
+        if ((item.getDurability() >= 16 || item.getDurability() < 0) && item.getType() != Material.AIR) {
+            return "i@" + getMaterial().realName() + "," + item.getDurability() + PropertyParser.getPropertiesString(this);
         }
         return "i@" + getMaterial().identify().replace("m@", "") + PropertyParser.getPropertiesString(this);
     }
@@ -508,8 +524,58 @@ public class dItem implements dObject, Notable, Adjustable {
         return dMaterial.getMaterialFrom(item.getType(), item.getData().getData()).identifySimple();
     }
 
+
+    // Special-case that essentially fetches the material of the items and uses its 'identify()' method
+    public String identifyMaterialNoIdentifier() {
+        return dMaterial.getMaterialFrom(item.getType(), item.getData().getData()).identifySimpleNoIdentifier();
+    }
+
+    public String identifyNoIdentifier() {
+
+        if (item == null) return "null";
+
+        if (item.getTypeId() != 0) {
+
+            // If saved item, return that
+            if (isUnique()) {
+                return NotableManager.getSavedId(this) + (item.getAmount() == 1 ? "" : "[quantity=" + item.getAmount() + "]");
+            }
+
+            // If not a saved item, but is a custom item, return the script id
+            else if (isItemscript()) {
+                return getScriptName() + (item.getAmount() == 1 ? "" : "[quantity=" + item.getAmount() + "]");
+            }
+        }
+
+        // Else, return the material name
+        if (item.getDurability() >= 16 || item.getDurability() < 0) {
+            return getMaterial().realName() + "," + item.getDurability() + PropertyParser.getPropertiesString(this);
+        }
+        return getMaterial().identifyNoIdentifier() + PropertyParser.getPropertiesString(this);
+    }
+
+    public String identifySimpleNoIdentifier() {
+        if (item == null) return "null";
+
+        if (item.getTypeId() != 0) {
+
+            // If saved item, return that
+            if (isUnique()) {
+                return NotableManager.getSavedId(this);
+            }
+
+            // If not a saved item, but is a custom item, return the script id
+            else if (isItemscript()) {
+                return getScriptName();
+            }
+        }
+
+        // Else, return the material name
+        return identifyMaterialNoIdentifier();
+    }
+
     public String getFullString() {
-        return "i@" + (isItemscript() ? getScriptName(): getMaterial().realName()) + "," + item.getDurability() + PropertyParser.getPropertiesString(this);
+        return "i@" + (isItemscript() ? getScriptName() : getMaterial().realName()) + "," + item.getDurability() + PropertyParser.getPropertiesString(this);
     }
 
 
@@ -533,7 +599,9 @@ public class dItem implements dObject, Notable, Adjustable {
 
 
     @Override
-    public void makeUnique(String id) { NotableManager.saveAs(this, id); }
+    public void makeUnique(String id) {
+        NotableManager.saveAs(this, id);
+    }
 
 
     @Override
@@ -686,9 +754,10 @@ public class dItem implements dObject, Notable, Adjustable {
                 return new Element(id + "s")
                         .getAttribute(attribute.fulfill(1)); // iron sword -> iron swords
 
-            }   else {
-                if (id.equals("cactus")) return new Element("a cactus").getAttribute(attribute.fulfill(2));
-                if (id.endsWith("s")) return new Element(id).getAttribute(attribute.fulfill(2));
+            }
+            else {
+                if (id.equals("cactus")) return new Element("a cactus").getAttribute(attribute.fulfill(1));
+                if (id.endsWith("s")) return new Element(id).getAttribute(attribute.fulfill(1));
                 if (id.startsWith("a") || id.startsWith("e") || id.startsWith("i")
                         || id.startsWith("o") || id.startsWith("u"))
                     return new Element("an " + id)
@@ -723,7 +792,7 @@ public class dItem implements dObject, Notable, Adjustable {
         // -->
         if (attribute.startsWith("json")) {
             String JSON = CraftItemStack.asNMSCopy(item).C().getChatModifier().toString();
-            return new Element(JSON.substring(176, JSON.length() - 186))
+            return new Element(JSON.substring(176, JSON.length() - 185))
                     .getAttribute(attribute.fulfill(1));
         }
 

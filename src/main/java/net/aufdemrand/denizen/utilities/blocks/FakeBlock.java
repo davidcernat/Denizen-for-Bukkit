@@ -1,12 +1,10 @@
 package net.aufdemrand.denizen.utilities.blocks;
 
-
-import net.aufdemrand.denizen.objects.Duration;
 import net.aufdemrand.denizen.objects.dLocation;
 import net.aufdemrand.denizen.objects.dMaterial;
 import net.aufdemrand.denizen.objects.dPlayer;
 import net.aufdemrand.denizen.utilities.DenizenAPI;
-import net.aufdemrand.denizen.utilities.debugging.dB;
+import net.aufdemrand.denizencore.objects.Duration;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerQuitEvent;
@@ -17,11 +15,11 @@ import java.util.*;
 
 /**
  * Creates a temporary fake block and shows it to a dPlayer.
- *
  */
 public class FakeBlock {
 
     private final static Map<UUID, Map<dLocation, FakeBlock>> blocks = new HashMap<UUID, Map<dLocation, FakeBlock>>();
+    private final static Map<dLocation, FakeBlock> blocksByLocation = new HashMap<dLocation, FakeBlock>();
 
     private final dPlayer player;
     private final dLocation location;
@@ -76,6 +74,10 @@ public class FakeBlock {
         }.runTaskLater(DenizenAPI.getCurrentInstance(), 2);
     }
 
+    public static Map<UUID, Map<dLocation, FakeBlock>> getBlocks() {
+        return blocks;
+    }
+
     private void cancelBlock() {
         if (currentTask != null) {
             currentTask.cancel();
@@ -84,9 +86,11 @@ public class FakeBlock {
         cancelTime = -1;
         material = null;
         location.getBlock().getState().update();
+        blocks.get(player.getPlayerEntity().getUniqueId()).remove(location);
     }
 
-    private void updateBlock() {
+
+    public void updateBlock() {
         if (material != null) {
             updateBlock(material, cancelTime == -1 ? 0 : cancelTime - location.getWorld().getFullTime());
         }

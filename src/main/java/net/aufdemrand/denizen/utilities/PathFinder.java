@@ -3,8 +3,14 @@ package net.aufdemrand.denizen.utilities;
 import net.aufdemrand.denizen.Settings;
 import net.aufdemrand.denizen.objects.dLocation;
 
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 
+/**
+ * TODO: Find /best/ path. At the moment, this finds /a/ path. Not the best.
+ * Probably implement something that's /actually/ A* rather than an imitation of it.
+ */
 public class PathFinder {
 
     public static class Node {
@@ -17,9 +23,11 @@ public class PathFinder {
 
     static class MinHeap {
         public Node head;
+
         public boolean hasNext() {
             return head != null;
         }
+
         public void add(Node node) {
             if (head == null) {
                 head = node;
@@ -30,22 +38,22 @@ public class PathFinder {
             }
             else {
                 Node cur = head;
-                while (cur.nextListElement != null && cur.nextListElement.cost < node.cost)
-                {
+                while (cur.nextListElement != null && cur.nextListElement.cost < node.cost) {
                     cur = cur.nextListElement;
                 }
                 node.nextListElement = cur.nextListElement;
                 cur.nextListElement = node;
             }
         }
-        public Node extractFirst()
-        {
+
+        public Node extractFirst() {
             Node res = head;
             head = head.nextListElement;
             return res;
         }
     }
-    public static dLocation[] surroundings = new dLocation[] {
+
+    public static dLocation[] surroundings = new dLocation[]{
             new dLocation(null, 1, 0, 0),
             new dLocation(null, -1, 0, 0),
             new dLocation(null, 0, 0, 1),
@@ -67,6 +75,7 @@ public class PathFinder {
         MinHeap heaplist = new MinHeap();
         heaplist.add(snode);
         HashSet<dLocation> tried = new HashSet<dLocation>(100);
+        List<Node> fNodes = new ArrayList<Node>();
         tried.add(start);
         while (heaplist.hasNext()) {
             Node curr = heaplist.extractFirst();
@@ -76,7 +85,8 @@ public class PathFinder {
                 n.cost = curr.pathCost + 1;
                 n.pathCost = curr.cost + 1;
                 n.next = curr;
-                return n;
+                fNodes.add(n);
+                continue;
             }
             for (int i = 0; i < surroundings.length; i++) {
                 dLocation surr = surroundings[i];
@@ -94,7 +104,13 @@ public class PathFinder {
                 }
             }
         }
-        return null; // Give up
+        Node fnode = null;
+        for (Node node : fNodes) {
+            if (fnode == null || node.pathCost < fnode.pathCost) {
+                fnode = node;
+            }
+        }
+        return fnode;
     }
 
     public static double lengthSquared(dLocation loc) {

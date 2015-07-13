@@ -1,19 +1,18 @@
 package net.aufdemrand.denizen.scripts.commands.player;
 
 import net.aufdemrand.denizen.BukkitScriptEntryData;
-import org.bukkit.entity.Player;
-
+import net.aufdemrand.denizen.utilities.debugging.dB;
 import net.aufdemrand.denizencore.exceptions.CommandExecutionException;
 import net.aufdemrand.denizencore.exceptions.InvalidArgumentsException;
-import net.aufdemrand.denizen.scripts.ScriptEntry;
-import net.aufdemrand.denizen.scripts.commands.AbstractCommand;
-import net.aufdemrand.denizen.objects.aH;
-import net.aufdemrand.denizen.utilities.debugging.dB;
+import net.aufdemrand.denizencore.objects.aH;
+import net.aufdemrand.denizencore.scripts.ScriptEntry;
+import net.aufdemrand.denizencore.scripts.commands.AbstractCommand;
+import org.bukkit.entity.Player;
 
 
 public class ExperienceCommand extends AbstractCommand {
 
-    private enum Type { SET, GIVE, TAKE }
+    private enum Type {SET, GIVE, TAKE}
 
     /**
      * with help from author: alkarin
@@ -24,7 +23,7 @@ public class ExperienceCommand extends AbstractCommand {
     }
 
     public static int getTotalExperience(int level, double bar) {
-        return getTotalExpToLevel(level) + (int) (getExpToLevel(level + 1) * bar);
+        return getTotalExpToLevel(level) + (int) (getExpToLevel(level + 1) * bar + 0.5);
     }
 
     public static int getExpToLevel(int level) {
@@ -44,7 +43,7 @@ public class ExperienceCommand extends AbstractCommand {
             return 17 * level;
         }
         else if (level < 31) {
-            return (int) (1.5 * level * level - 29.5 * level + 360 );
+            return (int) (1.5 * level * level - 29.5 * level + 360);
         }
         else {
             return (int) (3.5 * level * level - 151.5 * level + 2220);
@@ -111,8 +110,8 @@ public class ExperienceCommand extends AbstractCommand {
         if (newexp > 0) {
             final int level = countLevel(newexp, 17, 0);
             player.setLevel(level);
-            final int epxToLvl = newexp - getTotalExpToLevel(level);
-            player.setExp(epxToLvl < 0 ? 0 : epxToLvl / getExpToLevel(level + 1));
+            final int expToLvl = newexp - getTotalExpToLevel(level);
+            player.setExp(expToLvl < 0 ? 0.0f : (float) expToLvl / (float) getExpToLevel(level + 1));
         }
     }
 
@@ -133,10 +132,10 @@ public class ExperienceCommand extends AbstractCommand {
             else if (arg.matches("SET", "GIVE", "TAKE"))
                 type = Type.valueOf(arg.asElement().asString().toUpperCase());
 
-            else if(arg.matches("LEVEL"))
+            else if (arg.matches("LEVEL"))
                 level = true;
 
-            else if(arg.matches("SILENT"))
+            else if (arg.matches("SILENT"))
                 silent = true;
 
             else
@@ -160,36 +159,36 @@ public class ExperienceCommand extends AbstractCommand {
         Boolean silent = (Boolean) scriptEntry.getObject("silent");
 
         dB.report(scriptEntry, name, aH.debugObj("Type", type.toString())
-            + aH.debugObj("Quantity", level ? quantity.toString() + " levels" : quantity.toString())
-            + aH.debugObj("Player", ((BukkitScriptEntryData)scriptEntry.entryData).getPlayer().getName()));
+                + aH.debugObj("Quantity", level ? quantity.toString() + " levels" : quantity.toString())
+                + aH.debugObj("Player", ((BukkitScriptEntryData) scriptEntry.entryData).getPlayer().getName()));
 
-        Player player = ((BukkitScriptEntryData)scriptEntry.entryData).getPlayer().getPlayerEntity();
+        Player player = ((BukkitScriptEntryData) scriptEntry.entryData).getPlayer().getPlayerEntity();
 
         switch (type) {
             case SET:
-                if(level)
-                    ((BukkitScriptEntryData)scriptEntry.entryData).getPlayer().setLevel(quantity);
-                else if ( !silent )
+                if (level)
+                    ((BukkitScriptEntryData) scriptEntry.entryData).getPlayer().setLevel(quantity);
+                else if (!silent)
                     setTotalExperience(player, quantity);
                 else
                     setSilentTotalExperience(player, quantity);
                 break;
 
             case GIVE:
-                if(level)
-                    ((BukkitScriptEntryData)scriptEntry.entryData).getPlayer().setLevel(((BukkitScriptEntryData)scriptEntry.entryData).getPlayer().getPlayerEntity().getLevel() + quantity);
-                else if ( !silent )
+                if (level)
+                    ((BukkitScriptEntryData) scriptEntry.entryData).getPlayer().setLevel(((BukkitScriptEntryData) scriptEntry.entryData).getPlayer().getPlayerEntity().getLevel() + quantity);
+                else if (!silent)
                     giveExperience(player, quantity);
                 else
                     giveSilentExperience(player, quantity);
                 break;
 
             case TAKE:
-                if(level) {
-                    int value = ((BukkitScriptEntryData)scriptEntry.entryData).getPlayer().getPlayerEntity().getLevel() - quantity;
-                    ((BukkitScriptEntryData)scriptEntry.entryData).getPlayer().setLevel(value <= 0 ? 0: value);
+                if (level) {
+                    int value = ((BukkitScriptEntryData) scriptEntry.entryData).getPlayer().getPlayerEntity().getLevel() - quantity;
+                    ((BukkitScriptEntryData) scriptEntry.entryData).getPlayer().setLevel(value <= 0 ? 0 : value);
                 }
-                else if ( !silent )
+                else if (!silent)
                     giveExperience(player, -quantity);
                 else
                     giveSilentExperience(player, -quantity);

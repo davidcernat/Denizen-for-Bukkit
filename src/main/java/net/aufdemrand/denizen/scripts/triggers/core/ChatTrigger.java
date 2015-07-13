@@ -1,20 +1,23 @@
 package net.aufdemrand.denizen.scripts.triggers.core;
 
 import net.aufdemrand.denizen.Settings;
-import net.aufdemrand.denizen.objects.*;
 import net.aufdemrand.denizen.npc.traits.ChatbotTrait;
 import net.aufdemrand.denizen.npc.traits.TriggerTrait;
-import net.aufdemrand.denizen.scripts.commands.core.DetermineCommand;
+import net.aufdemrand.denizen.objects.dNPC;
+import net.aufdemrand.denizen.objects.dPlayer;
 import net.aufdemrand.denizen.scripts.containers.core.InteractScriptContainer;
 import net.aufdemrand.denizen.scripts.containers.core.InteractScriptHelper;
 import net.aufdemrand.denizen.scripts.triggers.AbstractTrigger;
 import net.aufdemrand.denizen.tags.BukkitTagContext;
-import net.aufdemrand.denizen.tags.TagManager;
 import net.aufdemrand.denizen.utilities.DenizenAPI;
 import net.aufdemrand.denizen.utilities.Utilities;
-import net.aufdemrand.denizen.utilities.entity.Rotation;
 import net.aufdemrand.denizen.utilities.debugging.dB;
-
+import net.aufdemrand.denizen.utilities.entity.Rotation;
+import net.aufdemrand.denizencore.objects.Element;
+import net.aufdemrand.denizencore.objects.aH;
+import net.aufdemrand.denizencore.objects.dObject;
+import net.aufdemrand.denizencore.scripts.commands.core.DetermineCommand;
+import net.aufdemrand.denizencore.tags.TagManager;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
@@ -25,7 +28,7 @@ import org.bukkit.event.player.PlayerChatEvent;
 
 import java.util.*;
 import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
+import java.util.concurrent.FutureTask;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -134,7 +137,8 @@ public class ChatTrigger extends AbstractTrigger implements Listener {
                         + "The NPC is currently cooling down or engaged.");
                 return new ChatContext(false);
 
-            } else
+            }
+            else
                 ret = true;
         }
 
@@ -160,7 +164,7 @@ public class ChatTrigger extends AbstractTrigger implements Listener {
         // Check if the NPC has Chat Triggers for this step.
         if (!script.containsTriggerInStep(
                 InteractScriptHelper.getCurrentStep(denizenPlayer,
-                        script.getName()),  ChatTrigger.class)) {
+                        script.getName()), ChatTrigger.class)) {
 
             // If this is a Chatbot, make it chat anything it wants if
             // it has no chat triggers for this step
@@ -217,7 +221,7 @@ public class ChatTrigger extends AbstractTrigger implements Listener {
                 String triggerText = TagManager.tag(entry.getValue(), new BukkitTagContext
                         (denizenPlayer, npc, false, null, false, null));
                 Matcher matcher = triggerPattern.matcher(triggerText);
-                while (matcher.find ()) {
+                while (matcher.find()) {
                     if (!script.checkSpecificTriggerScriptRequirementsFor(ChatTrigger.class,
                             denizenPlayer, npc, entry.getKey())) continue;
                     // TODO: script arg?
@@ -231,8 +235,8 @@ public class ChatTrigger extends AbstractTrigger implements Listener {
                     }
                     // Check if the trigger is REGEX, but only if we don't have a REGEX
                     // match already (thus using alphabetical priority for triggers)
-                    if(regexId == null && isKeywordRegex(keyword)) {
-                        Pattern    pattern = Pattern.compile(keyword.substring(6));
+                    if (regexId == null && isKeywordRegex(keyword)) {
+                        Pattern pattern = Pattern.compile(keyword.substring(6));
                         Matcher m = pattern.matcher(message);
                         if (m.find()) {
                             // REGEX matches are left for last, so save it in case non-REGEX
@@ -246,8 +250,7 @@ public class ChatTrigger extends AbstractTrigger implements Listener {
                         }
                     }
                     else if (isKeywordStrict(keyword)) {
-                        if (message.toUpperCase().equalsIgnoreCase(keyword.toUpperCase()))
-                        {
+                        if (message.toUpperCase().equalsIgnoreCase(keyword.toUpperCase())) {
                             // Trigger matches
                             id = entry.getKey();
                             replacementText = triggerText.replace("/", "");
@@ -256,8 +259,7 @@ public class ChatTrigger extends AbstractTrigger implements Listener {
                                 replacementText = replace;
                         }
                     }
-                    else if (message.toUpperCase().contains(keyword.toUpperCase()))
-                    {
+                    else if (message.toUpperCase().contains(keyword.toUpperCase())) {
                         // Trigger matches
                         id = entry.getKey();
                         replacementText = triggerText.replace("/", "");
@@ -291,7 +293,7 @@ public class ChatTrigger extends AbstractTrigger implements Listener {
                 if (HyperDebug) dB.log("Chatbot");
                 return new ChatContext(true);
             }
-            else if (!Settings.chatGloballyIfFailedChatTriggers ()) {
+            else if (!Settings.chatGloballyIfFailedChatTriggers()) {
                 Utilities.talkToNPC(message, denizenPlayer, npc, Settings.chatToNpcOverhearingRange());
                 if (HyperDebug) dB.log("Chat globally");
                 return new ChatContext(true);
@@ -313,41 +315,27 @@ public class ChatTrigger extends AbstractTrigger implements Listener {
         // Return if "Use asynchronous event" is false in config file
         if (!Settings.chatAsynchronous()) return;
 
-        Callable<ChatContext> call = new Callable<ChatContext>() {
-            ChatContext called = null;
+        FutureTask<ChatContext> futureTask = new FutureTask<ChatContext>(new Callable<ChatContext>() {
+            @Override
             public ChatContext call() {
-                if (called != null)
-                    return called;
-                called = process(event.getPlayer(), event.getMessage());
-                return called;
+                return process(event.getPlayer(), event.getMessage());
             }
-        };
+        });
 
-        Boolean cancelled = false;
+        Bukkit.getScheduler().runTask(DenizenAPI.getCurrentInstance(), futureTask);
 
         try {
-            // Determine if the chat should be cancelled
-            cancelled = event.isAsynchronous()
-                    ? Bukkit.getScheduler().callSyncMethod(DenizenAPI.getCurrentInstance(), call).get().wasTriggered()
-                    : call.call().wasTriggered();
-
-            // Handle any changes with the ChatContext message
-            if (call.call().hasChanges())
-                event.setMessage(call.call().getChanges());
-
-        } catch (InterruptedException e) {
-            if (HyperDebug) dB.log("INTERRUPTED?");
-            // This is normal -- probably.
-            // dB.echoError(e);
-        } catch (ExecutionException e) {
-            dB.echoError(e);
-        } catch (Exception e) {
+            ChatContext context = futureTask.get();
+            if (context.wasTriggered()) {
+                event.setCancelled(true);
+            }
+            if (context.hasChanges()) {
+                event.setMessage(context.getChanges());
+            }
+        }
+        catch (Exception e) {
             dB.echoError(e);
         }
-
-
-        if (cancelled)
-            event.setCancelled(true);
     }
 
     @EventHandler
@@ -367,11 +355,11 @@ public class ChatTrigger extends AbstractTrigger implements Listener {
             event.setMessage(chat.getChanges());
     }
 
-    private boolean isKeywordRegex (String keyWord) {
+    private boolean isKeywordRegex(String keyWord) {
         return keyWord.toUpperCase().startsWith("REGEX:");
     }
 
-    private boolean isKeywordStrict (String keyWord) {
+    private boolean isKeywordStrict(String keyWord) {
         return keyWord.toUpperCase().startsWith("STRICT:");
     }
 
@@ -379,7 +367,6 @@ public class ChatTrigger extends AbstractTrigger implements Listener {
     /**
      * Contains whether the chat trigger successfully 'triggered' and any context that was
      * available while triggering or attempting to trigger.
-     *
      */
     public class ChatContext {
 
@@ -392,7 +379,8 @@ public class ChatTrigger extends AbstractTrigger implements Listener {
             this.triggered = triggered;
         }
 
-        String changed_text; boolean triggered;
+        String changed_text;
+        boolean triggered;
 
         public boolean hasChanges() {
             return changed_text != null;

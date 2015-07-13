@@ -1,17 +1,16 @@
 package net.aufdemrand.denizen.scripts.commands.core;
 
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
-
+import net.aufdemrand.denizen.utilities.debugging.dB;
 import net.aufdemrand.denizencore.exceptions.CommandExecutionException;
 import net.aufdemrand.denizencore.exceptions.InvalidArgumentsException;
 import net.aufdemrand.denizencore.exceptions.ScriptEntryCreationException;
-import net.aufdemrand.denizen.objects.Element;
-import net.aufdemrand.denizen.objects.aH;
-import net.aufdemrand.denizen.scripts.ScriptEntry;
-import net.aufdemrand.denizen.scripts.commands.BracedCommand;
-import net.aufdemrand.denizen.utilities.debugging.dB;
+import net.aufdemrand.denizencore.objects.Element;
+import net.aufdemrand.denizencore.objects.aH;
+import net.aufdemrand.denizencore.scripts.ScriptEntry;
+import net.aufdemrand.denizencore.scripts.commands.BracedCommand;
+import net.aufdemrand.denizencore.utilities.debugging.dB.DebugElement;
+
+import java.util.List;
 
 public class RepeatCommand extends BracedCommand {
 
@@ -101,7 +100,7 @@ public class RepeatCommand extends BracedCommand {
                 }
             }
             else {
-                dB.echoError("Cannot stop while: not in one!");
+                dB.echoError("Cannot stop repeat: not in one!");
             }
             return;
         }
@@ -128,24 +127,24 @@ public class RepeatCommand extends BracedCommand {
                 }
             }
             else {
-                dB.echoError("Cannot stop while: not in one!");
+                dB.echoError("Cannot stop repeat: not in one!");
             }
             return;
         }
         else if (callback != null && callback.asBoolean()) {
             if (scriptEntry.getOwner() != null && (scriptEntry.getOwner().getCommandName().equalsIgnoreCase("repeat") ||
                     scriptEntry.getOwner().getBracedSet() == null || scriptEntry.getOwner().getBracedSet().size() == 0 ||
-                    scriptEntry.getBracedSet().get("REPEAT").get(scriptEntry.getBracedSet().get("REPEAT").size() - 1) != scriptEntry)) {
-                RepeatData data = (RepeatData)scriptEntry.getOwner().getData();
+                    scriptEntry.getBracedSet().get(0).value.get(scriptEntry.getBracedSet().get(0).value.size() - 1) != scriptEntry)) {
+                RepeatData data = (RepeatData) scriptEntry.getOwner().getData();
                 data.index++;
                 if (data.index <= data.target) {
-                    dB.echoDebug(scriptEntry, dB.DebugElement.Header, "Repeat loop " + data.index);
+                    dB.echoDebug(scriptEntry, DebugElement.Header, "Repeat loop " + data.index);
                     scriptEntry.getResidingQueue().addDefinition("value", String.valueOf(data.index));
-                    ArrayList<ScriptEntry> bracedCommands = BracedCommand.getBracedCommands(scriptEntry.getOwner()).get("REPEAT");
+                    List<ScriptEntry> bracedCommands = BracedCommand.getBracedCommands(scriptEntry.getOwner()).get(0).value;
                     ScriptEntry callbackEntry = null;
                     try {
-                        callbackEntry = new ScriptEntry("REPEAT", new String[] { "\0CALLBACK" },
-                                (scriptEntry.getScript() != null ? scriptEntry.getScript().getContainer(): null));
+                        callbackEntry = new ScriptEntry("REPEAT", new String[]{"\0CALLBACK"},
+                                (scriptEntry.getScript() != null ? scriptEntry.getScript().getContainer() : null));
                         callbackEntry.copyFrom(scriptEntry);
                     }
                     catch (ScriptEntryCreationException e) {
@@ -168,8 +167,8 @@ public class RepeatCommand extends BracedCommand {
         else {
 
             // Get objects
-            ArrayList<ScriptEntry> bracedCommandsList =
-                    ((LinkedHashMap<String, ArrayList<ScriptEntry>>) scriptEntry.getObject("braces")).get("REPEAT");
+            List<ScriptEntry> bracedCommandsList =
+                    ((List<BracedData>) scriptEntry.getObject("braces")).get(0).value;
 
             if (bracedCommandsList == null || bracedCommandsList.isEmpty()) {
                 dB.echoError("Empty braces!");
@@ -180,8 +179,7 @@ public class RepeatCommand extends BracedCommand {
             dB.report(scriptEntry, getName(), quantity.debug());
 
             int target = quantity.asInt();
-            if (target <= 0)
-            {
+            if (target <= 0) {
                 dB.echoDebug(scriptEntry, "Zero count, not looping...");
                 return;
             }
@@ -191,8 +189,8 @@ public class RepeatCommand extends BracedCommand {
             scriptEntry.setData(datum);
             ScriptEntry callbackEntry = null;
             try {
-                callbackEntry = new ScriptEntry("REPEAT", new String[] { "\0CALLBACK" },
-                        (scriptEntry.getScript() != null ? scriptEntry.getScript().getContainer(): null));
+                callbackEntry = new ScriptEntry("REPEAT", new String[]{"\0CALLBACK"},
+                        (scriptEntry.getScript() != null ? scriptEntry.getScript().getContainer() : null));
                 callbackEntry.copyFrom(scriptEntry);
             }
             catch (ScriptEntryCreationException e) {

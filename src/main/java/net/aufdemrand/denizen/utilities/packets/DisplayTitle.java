@@ -1,9 +1,8 @@
 package net.aufdemrand.denizen.utilities.packets;
 
 import net.aufdemrand.denizen.utilities.debugging.dB;
-import net.minecraft.server.v1_8_R1.ChatComponentText;
-import net.minecraft.server.v1_8_R1.EnumTitleAction;
-import net.minecraft.server.v1_8_R1.PacketPlayOutTitle;
+import net.minecraft.server.v1_8_R3.ChatComponentText;
+import net.minecraft.server.v1_8_R3.PacketPlayOutTitle;
 import org.bukkit.entity.Player;
 
 import java.lang.reflect.Field;
@@ -25,9 +24,10 @@ public class DisplayTitle {
     public static PacketPlayOutTitle getTitlePacket(String title) {
         PacketPlayOutTitle titlePacket = new PacketPlayOutTitle();
         try {
-            title_action.set(titlePacket, EnumTitleAction.TITLE);
+            title_action.set(titlePacket, PacketPlayOutTitle.EnumTitleAction.TITLE);
             chat_component.set(titlePacket, new ChatComponentText(title));
-        } catch (Exception e) {
+        }
+        catch (Exception e) {
             dB.echoError(e);
         }
         return titlePacket;
@@ -36,9 +36,10 @@ public class DisplayTitle {
     public static PacketPlayOutTitle getSubtitlePacket(String subtitle) {
         PacketPlayOutTitle titlePacket = new PacketPlayOutTitle();
         try {
-            title_action.set(titlePacket, EnumTitleAction.SUBTITLE);
+            title_action.set(titlePacket, PacketPlayOutTitle.EnumTitleAction.SUBTITLE);
             chat_component.set(titlePacket, new ChatComponentText(subtitle));
-        } catch (Exception e) {
+        }
+        catch (Exception e) {
             dB.echoError(e);
         }
         return titlePacket;
@@ -47,11 +48,12 @@ public class DisplayTitle {
     public static PacketPlayOutTitle getTimesPacket(int fade_in, int stay, int fade_out) {
         PacketPlayOutTitle titlePacket = new PacketPlayOutTitle();
         try {
-            title_action.set(titlePacket, EnumTitleAction.TIMES);
+            title_action.set(titlePacket, PacketPlayOutTitle.EnumTitleAction.TIMES);
             fade_in_ticks.set(titlePacket, fade_in);
             stay_ticks.set(titlePacket, stay);
             fade_out_ticks.set(titlePacket, fade_out);
-        } catch (Exception e) {
+        }
+        catch (Exception e) {
             dB.echoError(e);
         }
         return titlePacket;

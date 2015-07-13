@@ -1,27 +1,19 @@
 package net.aufdemrand.denizen.scripts.commands.entity;
 
-import java.util.Arrays;
-import java.util.List;
-
 import net.aufdemrand.denizen.BukkitScriptEntryData;
+import net.aufdemrand.denizen.objects.dEntity;
+import net.aufdemrand.denizen.utilities.debugging.dB;
 import net.aufdemrand.denizencore.exceptions.CommandExecutionException;
 import net.aufdemrand.denizencore.exceptions.InvalidArgumentsException;
-import net.aufdemrand.denizen.scripts.ScriptEntry;
-import net.aufdemrand.denizen.scripts.commands.AbstractCommand;
-import net.aufdemrand.denizen.objects.aH;
-import net.aufdemrand.denizen.objects.dEntity;
-import net.aufdemrand.denizen.objects.dList;
-import net.aufdemrand.denizen.utilities.debugging.dB;
+import net.aufdemrand.denizencore.objects.aH;
+import net.aufdemrand.denizencore.objects.dList;
+import net.aufdemrand.denizencore.scripts.ScriptEntry;
+import net.aufdemrand.denizencore.scripts.commands.AbstractCommand;
 import net.citizensnpcs.api.ai.Navigator;
 import net.citizensnpcs.api.ai.TargetType;
 
-/**
- *
- * Makes NPCs or entities attack a certain entity.
- *
- * @author David Cernat
- *
- */
+import java.util.Arrays;
+import java.util.List;
 
 public class AttackCommand extends AbstractCommand {
 
@@ -33,7 +25,7 @@ public class AttackCommand extends AbstractCommand {
             if (!scriptEntry.hasObject("cancel")
                     && arg.matches("cancel", "stop")) {
 
-                scriptEntry.addObject("cancel", "");
+                scriptEntry.addObject("cancel", "true");
             }
 
             else if (!scriptEntry.hasObject("target")
@@ -55,11 +47,11 @@ public class AttackCommand extends AbstractCommand {
 
         // Use the player as the target if one is not specified
         if (!scriptEntry.hasObject("target"))
-            scriptEntry.addObject("target", ((BukkitScriptEntryData)scriptEntry.entryData).hasPlayer() ? ((BukkitScriptEntryData)scriptEntry.entryData).getPlayer().getDenizenEntity(): null);
+            scriptEntry.addObject("target", ((BukkitScriptEntryData) scriptEntry.entryData).hasPlayer() ? ((BukkitScriptEntryData) scriptEntry.entryData).getPlayer().getDenizenEntity() : null);
 
         // Use the NPC as the attacking entity if one is not specified
         scriptEntry.defaultObject("entities",
-                ((BukkitScriptEntryData)scriptEntry.entryData).hasNPC() ? Arrays.asList(((BukkitScriptEntryData)scriptEntry.entryData).getNPC().getDenizenEntity()) : null);
+                ((BukkitScriptEntryData) scriptEntry.entryData).hasNPC() ? Arrays.asList(((BukkitScriptEntryData) scriptEntry.entryData).getNPC().getDenizenEntity()) : null);
 
         // Check to make sure required arguments have been filled
         if (!scriptEntry.hasObject("entities"))
@@ -76,10 +68,10 @@ public class AttackCommand extends AbstractCommand {
         // Get objects
         List<dEntity> entities = (List<dEntity>) scriptEntry.getObject("entities");
         dEntity target = (dEntity) scriptEntry.getObject("target");
-        Boolean cancel = scriptEntry.hasObject("cancel");
+        boolean cancel = scriptEntry.hasObject("cancel");
 
         // Report to dB
-        dB.report(scriptEntry, getName(), (cancel ? aH.debugObj("cancel", cancel) : "") +
+        dB.report(scriptEntry, getName(), (cancel ? aH.debugObj("cancel", "true") : "") +
                 aH.debugObj("entities", entities.toString()) +
                 (target != null ? aH.debugObj("target", target) : ""));
 
@@ -87,10 +79,10 @@ public class AttackCommand extends AbstractCommand {
         // the target or stop attacking
 
         for (dEntity entity : entities) {
-            if (entity.isNPC()) {
+            if (entity.isCitizensNPC()) {
                 Navigator nav = entity.getDenizenNPC().getCitizen().getNavigator();
 
-                if (cancel.equals(false)) {
+                if (!cancel) {
                     nav.setTarget(target.getBukkitEntity(), true);
                 }
                 else {
@@ -104,7 +96,7 @@ public class AttackCommand extends AbstractCommand {
                 }
             }
             else {
-                if (cancel.equals(false)) {
+                if (!cancel) {
                     entity.target(target.getLivingEntity());
                 }
                 else {

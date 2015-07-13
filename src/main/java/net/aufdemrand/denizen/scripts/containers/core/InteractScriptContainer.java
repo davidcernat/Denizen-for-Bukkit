@@ -3,14 +3,16 @@ package net.aufdemrand.denizen.scripts.containers.core;
 import net.aufdemrand.denizen.BukkitScriptEntryData;
 import net.aufdemrand.denizen.objects.dNPC;
 import net.aufdemrand.denizen.objects.dPlayer;
-import net.aufdemrand.denizen.scripts.ScriptEntry;
-import net.aufdemrand.denizen.scripts.containers.ScriptContainer;
 import net.aufdemrand.denizen.scripts.requirements.RequirementsContext;
 import net.aufdemrand.denizen.scripts.requirements.RequirementsMode;
 import net.aufdemrand.denizen.scripts.triggers.AbstractTrigger;
 import net.aufdemrand.denizen.utilities.DenizenAPI;
 import net.aufdemrand.denizen.utilities.debugging.dB;
+import net.aufdemrand.denizencore.scripts.ScriptEntry;
+import net.aufdemrand.denizencore.scripts.containers.ScriptContainer;
 import net.aufdemrand.denizencore.utilities.YamlConfiguration;
+import net.aufdemrand.denizencore.utilities.text.StringHolder;
+
 import java.util.*;
 
 public class InteractScriptContainer extends ScriptContainer {
@@ -20,7 +22,7 @@ public class InteractScriptContainer extends ScriptContainer {
 
         try {
             // Find steps/default step in the script
-            Set<String> keys;
+            Set<StringHolder> keys;
             keys = getConfigurationSection("STEPS").getKeys(false);
 
             // TODO: Throw a warning if 'requirements' section exists
@@ -28,7 +30,8 @@ public class InteractScriptContainer extends ScriptContainer {
             if (keys.isEmpty())
                 throw new ExceptionInInitializerError("Could not find any STEPS in " + getName() + "! Is the type on this script correct?");
 
-            for (String step : keys) {
+            for (StringHolder step1 : keys) {
+                String step = step1.str;
                 if (step.contains("*")) {
                     YamlConfiguration defaultStepSection = getConfigurationSection("STEPS." + step);
                     step = step.replace("*", "");
@@ -42,7 +45,8 @@ public class InteractScriptContainer extends ScriptContainer {
                 steps.add(step);
             }
 
-        } catch (Exception e) {
+        }
+        catch (Exception e) {
             dB.echoError(e);
         }
 
@@ -50,7 +54,8 @@ public class InteractScriptContainer extends ScriptContainer {
         if (defaultStep == null && steps.size() == 1)
             defaultStep = steps.get(0);
 
-        if (defaultStep == null) throw new ExceptionInInitializerError("Must specify a default step in '" + getName() + "'!");
+        if (defaultStep == null)
+            throw new ExceptionInInitializerError("Must specify a default step in '" + getName() + "'!");
     }
 
     private String defaultStep = null;
@@ -63,24 +68,23 @@ public class InteractScriptContainer extends ScriptContainer {
     /**
      * <p>Gets the name of the default step for this interact script container. Default step
      * is specified by a '*' character on the end of the step name.</p>
-     *
+     * <p/>
      * <b>Example:</b>
      * <tt>
      * Example Interact Script: <br/>
-     *   Type: interact <br/>
-     *   Steps: <br/>
-     *     Step Name*:   <--- Default step for this interact script <br/>
-     *       ...  <br/>
+     * Type: interact <br/>
+     * Steps: <br/>
+     * Step Name*:   <--- Default step for this interact script <br/>
+     * ...  <br/>
      * <br/>
-     *     Another Step Name:  <--- Not the default step, must use ZAP <br/>
-     *       ...  <br/>
+     * Another Step Name:  <--- Not the default step, must use ZAP <br/>
+     * ...  <br/>
      * </tt>
-     *
+     * <p/>
      * <p>Note: For the sake of compatibility with v0.76, a step named '1' can also
      * be used to specify a default step.</p>
      *
      * @return name of the default step
-     *
      */
     public String getDefaultStepName() {
         return defaultStep;
@@ -89,11 +93,9 @@ public class InteractScriptContainer extends ScriptContainer {
     /**
      * Checks if the step in this script contains an entry for the specified trigger.
      *
-     * @param step  the name of the step to check
-     * @param trigger  the trigger to check for
-     *
+     * @param step    the name of the step to check
+     * @param trigger the trigger to check for
      * @return true if the trigger is present in the step, false otherwise
-     *
      */
     public boolean containsTriggerInStep(String step, Class<? extends AbstractTrigger> trigger) {
         String triggerName = DenizenAPI.getCurrentInstance()
@@ -108,40 +110,39 @@ public class InteractScriptContainer extends ScriptContainer {
      * by using getPossibleTriggersFor(). If no id is specified by passing null, the
      * base Script key will be used for the Trigger. If no script matches the trigger or
      * trigger/id combination, an empty list is returned.</p>
-     *
+     * <p/>
      * <b>Example:</b>
      * <tt>
      * Example Interact Script: <br/>
-     *   Type: interact <br/>
-     *   Steps: <br/>
-     *     Current Step:        <--- checked with Player object <br/>
-     *       Click Trigger:     <--- obtained with the Trigger class <br/>
+     * Type: interact <br/>
+     * Steps: <br/>
+     * Current Step:        <--- checked with Player object <br/>
+     * Click Trigger:     <--- obtained with the Trigger class <br/>
      * <br/>
-     *         id:              <--- id of the specific trigger script/script options <br/>
-     *           Script: <br/>
-     *           - ...          <--- entries obtained if id matches <br/>
-     *           - ... <br/>
+     * id:              <--- id of the specific trigger script/script options <br/>
+     * Script: <br/>
+     * - ...          <--- entries obtained if id matches <br/>
+     * - ... <br/>
      * <br/>
-     *         Script:          <--- script that is referenced if NO id is specified <br/>
-     *         - ...            <--- entries returned <br/>
-     *         - ... <br/>
+     * Script:          <--- script that is referenced if NO id is specified <br/>
+     * - ...            <--- entries returned <br/>
+     * - ... <br/>
      * </tt>
-     *
+     * <p/>
      * <p>Note: This is handled internally with the parse() method in AbstractTrigger, so for
      * basic triggers, you probably don't need to even call this.</p>
      *
-     * @param trigger  the class of the Trigger to use
+     * @param trigger the class of the Trigger to use
      * @param player  the Player involved
-     * @param npc  the NPC involved
-     * @param id  the id of the Trigger Script, optional
-     *
-     * @return  a list of ScriptEntries from the script or an empty list if no script was found
-     *
+     * @param npc     the NPC involved
+     * @param id      the id of the Trigger Script, optional
+     * @return a list of ScriptEntries from the script or an empty list if no script was found
      */
     public List<ScriptEntry> getEntriesFor(Class<? extends AbstractTrigger> trigger,
                                            dPlayer player, dNPC npc, String id) {
         return getEntriesFor(trigger, player, npc, id, false);
     }
+
     public List<ScriptEntry> getEntriesFor(Class<? extends AbstractTrigger> trigger,
                                            dPlayer player, dNPC npc, String id, boolean quiet) {
         // Get the trigger name
@@ -157,12 +158,13 @@ public class InteractScriptContainer extends ScriptContainer {
                             + triggerName + " TRIGGER."
                             + (id == null ? "SCRIPT" : id.toUpperCase() + ".SCRIPT"));
             // No entries, so just return an empty list to avoid NPEs
-        } else {
+        }
+        else {
             if (!quiet)
                 dB.echoDebug(this, "No entries in script for " +
                         ("STEPS." + InteractScriptHelper.getCurrentStep(player, getName()) + "."
-                        + triggerName + " TRIGGER."
-                        + (id == null ? "SCRIPT" : id.toUpperCase() + ".SCRIPT")));
+                                + triggerName + " TRIGGER."
+                                + (id == null ? "SCRIPT" : id.toUpperCase() + ".SCRIPT")));
             return Collections.emptyList();
         }
     }
@@ -171,31 +173,31 @@ public class InteractScriptContainer extends ScriptContainer {
      * Gets the available IDs with its trigger value in the form of a Map. The 'key' is
      * the name of the ID and the value is the value of the 'Trigger' key that is owned
      * by the ID key.
-     *
+     * <p/>
      * <b>Example:</b>
      * <tt>
      * Example Interact Script: <br/>
-     *   Type: interact <br/>
-     *   Steps: <br/>
-     *     Current Step:
-     *       Click Trigger:           <--- obtained with the Trigger class <br/>
+     * Type: interact <br/>
+     * Steps: <br/>
+     * Current Step:
+     * Click Trigger:           <--- obtained with the Trigger class <br/>
      * <br/>
-     *         id:                    <--- id of the specific trigger script/script options <br/>
-     *           Trigger: iron_sword  <--- value of the id key <br/>
-     *           Script: <br/>
-     *           - ...
-     *           - ... <br/>
+     * id:                    <--- id of the specific trigger script/script options <br/>
+     * Trigger: iron_sword  <--- value of the id key <br/>
+     * Script: <br/>
+     * - ...
+     * - ... <br/>
      * <br/>
-     *         Script:                <--- since this is an id-less entry for the click trigger, <br/>
-     *         - ...                       it will be ignored and not in the Map. <br/>
-     *         - ... <br/>
+     * Script:                <--- since this is an id-less entry for the click trigger, <br/>
+     * - ...                       it will be ignored and not in the Map. <br/>
+     * - ... <br/>
      * </tt>
-     *
+     * <p/>
      * <p>Note: This is handled internally with the parse() method in AbstractTrigger, so for
      * basic triggers, you probably don't need to even call this.</p>
      *
      * @param trigger The trigger involved
-     * @param player The Denizen Player object for the player who triggered it
+     * @param player  The Denizen Player object for the player who triggered it
      * @return A map of options in the trigger's script, excluding a plain 'script'
      */
 
@@ -212,11 +214,11 @@ public class InteractScriptContainer extends ScriptContainer {
             Map<String, String> idMap = new HashMap<String, String>();
             // Iterate through IDs to build the idMap
             try {
-                for (String id : getConfigurationSection("STEPS." + step + "."
+                for (StringHolder id : getConfigurationSection("STEPS." + step + "."
                         + triggerName + " TRIGGER").getKeys(false))
-                    if (!id.equalsIgnoreCase("SCRIPT"))
-                        idMap.put(id, getString("STEPS." + step + "."
-                                + triggerName + " TRIGGER." + id + ".TRIGGER", ""));
+                    if (!id.str.equalsIgnoreCase("SCRIPT"))
+                        idMap.put(id.str, getString("STEPS." + step + "."
+                                + triggerName + " TRIGGER." + id.str + ".TRIGGER", ""));
             }
             catch (Exception ex) {
                 dB.echoError("Warning: improperly defined " + trigger.getName() + " trigger for script '" + getName() + "'!");
@@ -259,6 +261,7 @@ public class InteractScriptContainer extends ScriptContainer {
         return contains("STEPS." + step + "." + triggerName + " TRIGGER"
                 + (id == null ? "" : "." + id.toUpperCase()) + "." + option.toUpperCase());
     }
+
     public boolean checkBaseRequirements(dPlayer player, dNPC npc) {
         return checkRequirements(player, npc, "");
     }
@@ -275,6 +278,6 @@ public class InteractScriptContainer extends ScriptContainer {
         RequirementsContext context = new RequirementsContext(new RequirementsMode(mode), requirements, this);
         context.attachPlayer(player);
         context.attachNPC(npc);
-        return DenizenAPI.getCurrentInstance().getScriptEngine().getRequirementChecker().check(context);
+        return DenizenAPI.getCurrentInstance().getRequirementChecker().check(context);
     }
 }

@@ -1,31 +1,19 @@
 package net.aufdemrand.denizen.scripts.commands.world;
 
-import net.aufdemrand.denizen.objects.*;
-import org.bukkit.Sound;
-
+import net.aufdemrand.denizen.objects.dLocation;
+import net.aufdemrand.denizen.objects.dPlayer;
+import net.aufdemrand.denizen.utilities.debugging.dB;
 import net.aufdemrand.denizencore.exceptions.CommandExecutionException;
 import net.aufdemrand.denizencore.exceptions.InvalidArgumentsException;
-import net.aufdemrand.denizen.scripts.ScriptEntry;
-import net.aufdemrand.denizen.scripts.commands.AbstractCommand;
-import net.aufdemrand.denizen.utilities.debugging.dB;
+import net.aufdemrand.denizencore.objects.Element;
+import net.aufdemrand.denizencore.objects.aH;
+import net.aufdemrand.denizencore.objects.dList;
+import net.aufdemrand.denizencore.scripts.ScriptEntry;
+import net.aufdemrand.denizencore.scripts.commands.AbstractCommand;
+import org.bukkit.Sound;
 import org.bukkit.entity.Player;
 
 import java.util.List;
-
-/* PLAYSOUND [LOCATION:x,y,z,world] [SOUND:NAME] (VOLUME:#) (PITCH:#)*/
-
-/*
- * Arguments: [] - Required, () - Optional
- * [LOCATION:x,y,z,world] specifies location of the sound
- * [SOUND:NAME] name of sound to be played
- * (VOLUME:#) adjusts the volume of the sound
- * (PITCH:#) adjusts the pitch of the sound
- *
- * Example Usage:
- * PLAYSOUND LOCATION:123,65,765,world SOUND:SPLASH VOLUME:1 PITCH:2
- * PLAYSOUND LOCATION:123,65,765,world S:SPLASH V:2 P:1
- *
- */
 
 public class PlaySoundCommand extends AbstractCommand {
 
@@ -93,32 +81,32 @@ public class PlaySoundCommand extends AbstractCommand {
         Element custom = scriptEntry.getElement("custom");
 
         dB.report(scriptEntry, getName(),
-                (locations != null ? aH.debugObj("locations", locations.toString()): "") +
-                (players != null ? aH.debugObj("entities", players.toString()): "") +
-                sound.debug() +
-                volume.debug() +
-                pitch.debug() +
-                custom.debug());
+                (locations != null ? aH.debugObj("locations", locations.toString()) : "") +
+                        (players != null ? aH.debugObj("entities", players.toString()) : "") +
+                        sound.debug() +
+                        volume.debug() +
+                        pitch.debug() +
+                        custom.debug());
 
         try {
             if (locations != null) {
                 if (custom.asBoolean()) {
                     for (dLocation location : locations)
-                        for (Player player: location.getWorld().getPlayers())
+                        for (Player player : location.getWorld().getPlayers())
                             // Note: Randomly defining 100 blocks as maximum hear distance.
                             if (player.getLocation().distanceSquared(location) < 100 * 100)
                                 player.playSound(location, sound.asString(),
                                         volume.asFloat(), pitch.asFloat());
                 }
                 else {
-                for (dLocation location : locations)
-                    location.getWorld().playSound(location,
-                            Sound.valueOf(sound.asString().toUpperCase()),
-                            volume.asFloat(), pitch.asFloat());
+                    for (dLocation location : locations)
+                        location.getWorld().playSound(location,
+                                Sound.valueOf(sound.asString().toUpperCase()),
+                                volume.asFloat(), pitch.asFloat());
                 }
             }
             else {
-                for (dPlayer player: players) {
+                for (dPlayer player : players) {
                     if (custom.asBoolean())
                         player.getPlayerEntity().playSound(player.getLocation(),
                                 sound.asString(), volume.asFloat(), pitch.asFloat());
@@ -128,7 +116,8 @@ public class PlaySoundCommand extends AbstractCommand {
                                 volume.asFloat(), pitch.asFloat());
                 }
             }
-        } catch (Exception e) {
+        }
+        catch (Exception e) {
             dB.echoDebug(scriptEntry, "Unable to play sound.");
         }
     }

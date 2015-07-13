@@ -1,33 +1,27 @@
 package net.aufdemrand.denizen.scripts.commands.entity;
 
 import net.aufdemrand.denizen.BukkitScriptEntryData;
-import net.aufdemrand.denizen.objects.*;
-import net.aufdemrand.denizen.scripts.ScriptEntry;
-import net.aufdemrand.denizen.scripts.commands.AbstractCommand;
+import net.aufdemrand.denizen.objects.dEntity;
+import net.aufdemrand.denizen.objects.dLocation;
+import net.aufdemrand.denizen.objects.dNPC;
 import net.aufdemrand.denizen.utilities.DenizenAPI;
 import net.aufdemrand.denizen.utilities.debugging.dB;
 import net.aufdemrand.denizen.utilities.depends.Depends;
 import net.aufdemrand.denizen.utilities.entity.EntityMovement;
 import net.aufdemrand.denizencore.exceptions.CommandExecutionException;
 import net.aufdemrand.denizencore.exceptions.InvalidArgumentsException;
+import net.aufdemrand.denizencore.objects.Element;
+import net.aufdemrand.denizencore.objects.aH;
+import net.aufdemrand.denizencore.objects.dList;
+import net.aufdemrand.denizencore.scripts.ScriptEntry;
+import net.aufdemrand.denizencore.scripts.commands.AbstractCommand;
 import net.aufdemrand.denizencore.scripts.commands.Holdable;
-import net.citizensnpcs.api.ai.event.NavigationCancelEvent;
-import net.citizensnpcs.api.ai.event.NavigationCompleteEvent;
-import net.citizensnpcs.api.ai.event.NavigationEvent;
-import net.citizensnpcs.api.ai.flocking.*;
-import org.bukkit.event.EventHandler;
-import org.bukkit.event.Listener;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-/**
- * Handles NPC walking with the Citizens API.
- *
- * @author Jeremy Schroeder
- */
-public class WalkCommand extends AbstractCommand implements Listener, Holdable {
+public class WalkCommand extends AbstractCommand implements Holdable {
 
     //                        percentage
     // walk [location] (speed:#.#) (auto_range)
@@ -58,6 +52,10 @@ public class WalkCommand extends AbstractCommand implements Listener, Holdable {
                     && arg.matchesPrefix("radius"))
                 scriptEntry.addObject("radius", arg.asElement());
 
+            else if (!scriptEntry.hasObject("stop")
+                    && arg.matches("stop"))
+                scriptEntry.addObject("stop", new Element(true));
+
             else if (!scriptEntry.hasObject("entities")
                     && arg.matchesArgumentList(dEntity.class))
                 scriptEntry.addObject("entities", arg.asType(dList.class).filter(dEntity.class));
@@ -69,19 +67,20 @@ public class WalkCommand extends AbstractCommand implements Listener, Holdable {
 
         // Check for required information
 
-        if (!scriptEntry.hasObject("location"))
+        if (!scriptEntry.hasObject("location") && !scriptEntry.hasObject("stop"))
             throw new InvalidArgumentsException("Must specify a location!");
 
         if (!scriptEntry.hasObject("entities")) {
-            if (((BukkitScriptEntryData)scriptEntry.entryData).getNPC() == null
-                    || !((BukkitScriptEntryData)scriptEntry.entryData).getNPC().isValid()
-                    || !((BukkitScriptEntryData)scriptEntry.entryData).getNPC().isSpawned())
+            if (((BukkitScriptEntryData) scriptEntry.entryData).getNPC() == null
+                    || !((BukkitScriptEntryData) scriptEntry.entryData).getNPC().isValid()
+                    || !((BukkitScriptEntryData) scriptEntry.entryData).getNPC().isSpawned())
                 throw new InvalidArgumentsException("Must have a valid spawned NPC attached.");
             else
-                scriptEntry.addObject("entities", Arrays.asList(((BukkitScriptEntryData)scriptEntry.entryData).getNPC()));
+                scriptEntry.addObject("entities",
+                        Arrays.asList(((BukkitScriptEntryData) scriptEntry.entryData).getNPC().getDenizenEntity()));
         }
 
-
+        scriptEntry.defaultObject("stop", new Element(false));
     }
 
 
@@ -94,34 +93,44 @@ public class WalkCommand extends AbstractCommand implements Listener, Holdable {
         Element speed = scriptEntry.getElement("speed");
         Element auto_range = scriptEntry.getElement("auto_range");
         Element radius = scriptEntry.getElement("radius");
+        Element stop = scriptEntry.getElement("stop");
         List<dEntity> entities = (List<dEntity>) scriptEntry.getObject("entities");
 
 
         // Debug the execution
 
-        dB.report(scriptEntry, getName(), loc.debug()
+        dB.report(scriptEntry, getName(), (loc!= null ? loc.debug() : "")
                 + (speed != null ? speed.debug() : "")
                 + (auto_range != null ? auto_range.debug() : "")
-                + (radius != null ? radius.debug(): "")
+                + (radius != null ? radius.debug() : "")
+                + stop.debug()
                 + (aH.debugObj("entities", entities)));
 
         // Do the execution
 
+        boolean shouldStop = stop.asBoolean();
+
         List<dNPC> npcs = new ArrayList<dNPC>();
-        for (dEntity entity : entities) {
-            if (entity.isNPC()) {
+        final List<dEntity> waitForEntities = new ArrayList<dEntity>();
+        for (final dEntity entity : entities) {
+            if (entity.isCitizensNPC()) {
                 dNPC npc = entity.getDenizenNPC();
                 npcs.add(npc);
                 if (!npc.isSpawned()) {
                     dB.echoError(scriptEntry.getResidingQueue(), "NPC " + npc.identify() + " is not spawned!");
                     continue;
                 }
+
+                if (shouldStop) {
+                    npc.getNavigator().setPaused(true);
+                    continue;
+                }
+
                 if (auto_range != null
                         && auto_range == Element.TRUE) {
                     double distance = npc.getLocation().distance(loc);
                     if (npc.getNavigator().getLocalParameters().range() < distance + 10)
-                        npc.getNavigator().getDefaultParameters().range((float) distance + 10);
-                    // TODO: Should be using local params rather than default?
+                        npc.getNavigator().getLocalParameters().range((float) distance + 10);
                 }
 
                 npc.getNavigator().setTarget(loc);
@@ -130,21 +139,31 @@ public class WalkCommand extends AbstractCommand implements Listener, Holdable {
                     npc.getNavigator().getLocalParameters().speedModifier(speed.asFloat());
 
                 if (radius != null) {
-                    NPCFlock flock = new RadiusNPCFlock(radius.asDouble());
-                    Flocker flocker = new Flocker(npc.getCitizen(), flock, new SeparationBehavior(Flocker.LOW_INFLUENCE),
-                            new CohesionBehavior(Flocker.LOW_INFLUENCE), new AlignmentBehavior(Flocker.HIGH_INFLUENCE));
-                    npc.getNavigator().getLocalParameters().addRunCallback(flocker);
+                    npc.getNavigator().getLocalParameters().addRunCallback(WalkCommandCitizensEvents
+                            .generateNewFlocker(npc.getCitizen(), radius.asDouble()));
                 }
             }
+            else if (shouldStop) {
+                EntityMovement.stopWalking(entity.getBukkitEntity());
+            }
             else {
-                EntityMovement.walkTo(entity.getBukkitEntity(), loc, speed != null ? speed.asDouble() : 0.3);
+                waitForEntities.add(entity);
+                EntityMovement.walkTo(entity.getBukkitEntity(), loc, speed != null ? speed.asDouble() : 0.2,
+                        new Runnable() {
+                            @Override
+                            public void run() {
+                                checkHeld(entity);
+                            }
+                        });
             }
         }
 
         if (scriptEntry.shouldWaitFor()) {
             held.add(scriptEntry);
-            scriptEntry.addObject("tally", npcs);
-            // TODO: make non-NPC entities waitable
+            if (!npcs.isEmpty())
+                scriptEntry.addObject("tally", npcs);
+            if (!waitForEntities.isEmpty())
+                scriptEntry.addObject("entities", waitForEntities);
         }
 
     }
@@ -153,45 +172,17 @@ public class WalkCommand extends AbstractCommand implements Listener, Holdable {
     // Held script entries
     public static List<ScriptEntry> held = new ArrayList<ScriptEntry>();
 
-    @EventHandler
-    public void finish(NavigationCompleteEvent e) {
-
-        if (held.isEmpty()) return;
-
-        checkHeld(e);
-
-    }
-
-    @EventHandler
-    public void cancel(NavigationCancelEvent e) {
-
-        if (held.isEmpty()) return;
-
-        checkHeld(e);
-
-    }
-
-
-    public void checkHeld(NavigationEvent e) {
-        if (e.getNPC() == null)
-            return;
-
-        // Check each held entry -- the scriptExecuter is waiting on
-        // the entry to be marked 'waited for'.
+    public void checkHeld(dEntity entity) {
         for (int i = 0; i < held.size(); i++) {
             ScriptEntry entry = held.get(i);
-
-            // Get all NPCs associated with the entry. They must all
-            // finish navigation before the entry can be let go
-            List<dNPC> tally = (List<dNPC>) entry.getObject("tally");
-            // If the NPC is the NPC from the event, take it from the list.
-            tally.remove(dNPC.mirrorCitizensNPC(e.getNPC()));
-
-            // Check if tally is empty.
-            if (tally.isEmpty()) {
-                entry.setFinished(true);
-                held.remove(i);
-                i--;
+            List<dEntity> waitForEntities = (List<dEntity>) entry.getObject("entities");
+            waitForEntities.remove(entity);
+            if (waitForEntities.isEmpty()) {
+                if (!entry.hasObject("tally") || ((List<dNPC>) entry.getObject("tally")).isEmpty()) {
+                    entry.setFinished(true);
+                    held.remove(i);
+                    i--;
+                }
             }
         }
     }
@@ -200,7 +191,7 @@ public class WalkCommand extends AbstractCommand implements Listener, Holdable {
     public void onEnable() {
         if (Depends.citizens != null) {
             DenizenAPI.getCurrentInstance().getServer().getPluginManager()
-                    .registerEvents(this, DenizenAPI.getCurrentInstance());
+                    .registerEvents(new WalkCommandCitizensEvents(), DenizenAPI.getCurrentInstance());
         }
     }
 }

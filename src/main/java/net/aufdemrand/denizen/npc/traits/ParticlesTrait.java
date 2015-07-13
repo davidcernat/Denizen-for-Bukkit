@@ -5,17 +5,16 @@ import net.aufdemrand.denizen.utilities.DenizenAPI;
 import net.aufdemrand.denizen.utilities.debugging.dB;
 import net.citizensnpcs.api.persistence.Persist;
 import net.citizensnpcs.api.trait.Trait;
-
 import org.bukkit.Effect;
 import org.bukkit.EntityEffect;
 import org.bukkit.Location;
 import org.bukkit.World;
-import org.bukkit.craftbukkit.v1_8_R1.entity.CraftWolf;
+import org.bukkit.craftbukkit.v1_8_R3.entity.CraftWolf;
 import org.bukkit.entity.Wolf;
 
 public class ParticlesTrait extends Trait {
 
-    public enum EffectType { NONE, SMOKE, FLAME, ENDER, POTBREAK, HEART, POTION, EXPLOSION }
+    public enum EffectType {NONE, SMOKE, FLAME, ENDER, POTBREAK, HEART, POTION, EXPLOSION}
 
     //DataWatcher dw;
     //EntityLiving el;
@@ -52,56 +51,56 @@ public class ParticlesTrait extends Trait {
         counter++;
 
         switch (effectType) {
-        case NONE:
-            break;
-        case FLAME:
-            if (counter > wait) {
-                playFlameEffect();
-                //dB.log("playing flame");
-                counter = 0;
-            }
-            break;
-        case ENDER:
-            if (counter > wait) {
-                playEnderEffect();
-                //dB.log("playing ender");
-                counter = 0;
-            }
-        case SMOKE:
-            if (counter > wait) {
-                playSmokeEffect();
-                //dB.log("playing smoke");
-                counter = 0;
-            }
-        case POTBREAK:
-            if (counter > wait) {
-                playPotionBreakEffect();
-                //dB.log("playing potion break");
-                counter = 0;
-            }
-            break;
-        case POTION:
+            case NONE:
+                break;
+            case FLAME:
+                if (counter > wait) {
+                    playFlameEffect();
+                    //dB.log("playing flame");
+                    counter = 0;
+                }
+                break;
+            case ENDER:
+                if (counter > wait) {
+                    playEnderEffect();
+                    //dB.log("playing ender");
+                    counter = 0;
+                }
+            case SMOKE:
+                if (counter > wait) {
+                    playSmokeEffect();
+                    //dB.log("playing smoke");
+                    counter = 0;
+                }
+            case POTBREAK:
+                if (counter > wait) {
+                    playPotionBreakEffect();
+                    //dB.log("playing potion break");
+                    counter = 0;
+                }
+                break;
+            case POTION:
             /*
             if (!el.effects.isEmpty()) {
                 c = net.minecraft.server.v1_6_R2.PotionBrewer.a(el.effects.values());
             }
             dw.watch(8, Integer.valueOf(c));
             */
-            break;
-        case HEART:
-            if (counter > wait) {
-                //dB.log("...playing heart effect");
-                playHeartEffect();
-                counter = 0;
-            }
-            break;
-        case EXPLOSION:
-            if (counter > wait) {
-                //dB.log("...playing explosion effect");
-                playExplosionEffect();
-                counter = 0;
-            }
-            break;
+                break;
+            case HEART:
+                if (counter > wait) {
+                    //dB.log("...playing heart effect");
+                    playHeartEffect();
+                    counter = 0;
+                }
+                break;
+            case EXPLOSION:
+                if (counter > wait) {
+                    //dB.log("...playing explosion effect");
+                    playExplosionEffect();
+                    counter = 0;
+                }
+                break;
         }
 
 
@@ -109,19 +108,19 @@ public class ParticlesTrait extends Trait {
 
     @Override
     public void onSpawn() {
-        //el = ((CraftLivingEntity)npc.getBukkitEntity()).getHandle();
+        //el = ((CraftLivingEntity)npc.getEntity()).getHandle();
         //dw = el.getDataWatcher();
-        world = npc.getBukkitEntity().getWorld();
+        world = npc.getEntity().getWorld();
     }
 
     public void playFlameEffect() {
-        Location location = npc.getBukkitEntity().getLocation();
+        Location location = npc.getEntity().getLocation();
         world.playEffect(location, Effect.MOBSPAWNER_FLAMES, 0);
         if (dense) world.playEffect(location.add(0, 1, 0), Effect.MOBSPAWNER_FLAMES, 0);
     }
 
     public void playEnderEffect() {
-        Location location = npc.getBukkitEntity().getLocation();
+        Location location = npc.getEntity().getLocation();
         world.playEffect(location, Effect.ENDER_SIGNAL, 0);
         if (dense) world.playEffect(location.add(0, 1, 0), Effect.ENDER_SIGNAL, 0);
     }
@@ -131,13 +130,13 @@ public class ParticlesTrait extends Trait {
     }
 
     public void playPotionBreakEffect() {
-        Location location = npc.getBukkitEntity().getLocation();
+        Location location = npc.getEntity().getLocation();
         world.playEffect(location, Effect.POTION_BREAK, 0);
         if (dense) world.playEffect(location.add(0, 1, 0), Effect.POTION_BREAK, 0);
     }
 
     public void playHeartEffect() {
-        Location location = npc.getBukkitEntity().getLocation();
+        Location location = npc.getEntity().getLocation();
         Wolf tempWolf = world.spawn(location, Wolf.class);
         ((CraftWolf) tempWolf).getHandle().setInvisible(true);
         tempWolf.playEffect(EntityEffect.WOLF_HEARTS);
@@ -146,7 +145,7 @@ public class ParticlesTrait extends Trait {
     }
 
     public void playSmokeEffect() {
-        Location location = npc.getBukkitEntity().getLocation();
+        Location location = npc.getEntity().getLocation();
         world.playEffect(location, Effect.SMOKE, 0);
         world.playEffect(location, Effect.SMOKE, 1);
         world.playEffect(location, Effect.SMOKE, 2);
@@ -170,7 +169,7 @@ public class ParticlesTrait extends Trait {
     }
 
     public void playExplosionEffect() {
-        Location location = npc.getBukkitEntity().getLocation();
+        Location location = npc.getEntity().getLocation();
         world.createExplosion(location, 0);
     }
 
@@ -186,7 +185,7 @@ public class ParticlesTrait extends Trait {
         super("particles");
     }
 
-    public void setDense (Boolean dense) {
+    public void setDense(Boolean dense) {
         this.dense = dense;
     }
 }

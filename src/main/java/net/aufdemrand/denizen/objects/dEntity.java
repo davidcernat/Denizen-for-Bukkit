@@ -1,32 +1,40 @@
 package net.aufdemrand.denizen.objects;
 
-import net.aufdemrand.denizen.npc.traits.HealthTrait;
-import net.aufdemrand.denizen.objects.properties.Property;
-import net.aufdemrand.denizen.objects.properties.PropertyParser;
+import net.aufdemrand.denizen.flags.FlagManager;
 import net.aufdemrand.denizen.objects.properties.entity.EntityAge;
 import net.aufdemrand.denizen.objects.properties.entity.EntityColor;
 import net.aufdemrand.denizen.objects.properties.entity.EntityTame;
-import net.aufdemrand.denizen.scripts.ScriptRegistry;
 import net.aufdemrand.denizen.scripts.containers.core.EntityScriptContainer;
 import net.aufdemrand.denizen.scripts.containers.core.EntityScriptHelper;
-import net.aufdemrand.denizen.tags.Attribute;
+import net.aufdemrand.denizen.tags.BukkitTagContext;
+import net.aufdemrand.denizen.utilities.DenizenAPI;
 import net.aufdemrand.denizen.utilities.debugging.dB;
 import net.aufdemrand.denizen.utilities.depends.Depends;
+import net.aufdemrand.denizen.utilities.entity.CraftFakePlayer;
+import net.aufdemrand.denizen.utilities.entity.DenizenEntityType;
 import net.aufdemrand.denizen.utilities.entity.Rotation;
 import net.aufdemrand.denizen.utilities.nbt.CustomNBT;
+import net.aufdemrand.denizencore.objects.*;
+import net.aufdemrand.denizencore.objects.properties.Property;
+import net.aufdemrand.denizencore.objects.properties.PropertyParser;
+import net.aufdemrand.denizencore.scripts.ScriptRegistry;
+import net.aufdemrand.denizencore.tags.Attribute;
+import net.aufdemrand.denizencore.tags.TagContext;
 import net.aufdemrand.denizencore.utilities.CoreUtilities;
-import net.minecraft.server.v1_8_R1.*;
+import net.citizensnpcs.api.CitizensAPI;
+import net.minecraft.server.v1_8_R3.*;
 import org.bukkit.*;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.BlockFace;
-import org.bukkit.craftbukkit.v1_8_R1.CraftWorld;
-import org.bukkit.craftbukkit.v1_8_R1.entity.CraftAnimals;
-import org.bukkit.craftbukkit.v1_8_R1.entity.CraftCreature;
-import org.bukkit.craftbukkit.v1_8_R1.entity.CraftLivingEntity;
-import org.bukkit.craftbukkit.v1_8_R1.entity.CraftPlayer;
+import org.bukkit.craftbukkit.v1_8_R3.CraftWorld;
+import org.bukkit.craftbukkit.v1_8_R3.entity.CraftAnimals;
+import org.bukkit.craftbukkit.v1_8_R3.entity.CraftCreature;
+import org.bukkit.craftbukkit.v1_8_R3.entity.CraftLivingEntity;
+import org.bukkit.craftbukkit.v1_8_R3.entity.CraftPlayer;
 import org.bukkit.entity.*;
 import org.bukkit.entity.Entity;
+import org.bukkit.event.entity.EntityTargetEvent;
 import org.bukkit.event.player.PlayerTeleportEvent.TeleportCause;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
@@ -35,18 +43,69 @@ import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.util.Vector;
 
-import java.util.ArrayList;
-import java.util.UUID;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class dEntity implements dObject, Adjustable {
 
 
+    /////////////////////
+    //   STATIC METHODS
+    /////////////////
+
+    private static final Map<UUID, Entity> rememberedEntities = new HashMap<UUID, Entity>();
+
+    public static void rememberEntity(Entity entity) {
+        rememberedEntities.put(entity.getUniqueId(), entity);
+    }
+
+    public static void forgetEntity(Entity entity) {
+        rememberedEntities.remove(entity.getUniqueId());
+    }
+
+    public static boolean isNPC(Entity entity) {
+        return entity != null && entity.hasMetadata("NPC") && entity.getMetadata("NPC").get(0).asBoolean();
+    }
+
+    public static boolean isCitizensNPC(Entity entity) {
+        return entity != null && Depends.citizens != null && CitizensAPI.getNPCRegistry().isNPC(entity);
+    }
+
+    public static dNPC getNPCFrom(Entity entity) {
+        if (isCitizensNPC(entity))
+            return dNPC.fromEntity(entity);
+        else
+            return null;
+    }
+
+    public static boolean isPlayer(Entity entity) {
+        return entity != null && entity instanceof Player && !isNPC(entity);
+    }
+
+    public static dPlayer getPlayerFrom(Entity entity) {
+        if (isPlayer(entity))
+            return dPlayer.mirrorBukkitPlayer((Player) entity);
+        else
+            return null;
+    }
+
+    public dItem getItemInHand() {
+        if (isLivingEntity()) {
+            return new dItem(getLivingEntity().getEquipment().getItemInHand().clone());
+        }
+        return null;
+    }
+
+
     //////////////////
     //    OBJECT FETCHER
     ////////////////
 
+
+    public static dEntity valueOf(String string) {
+        return valueOf(string, null);
+    }
 
     /**
      * Gets a dEntity Object from a string form. </br>
@@ -61,11 +120,11 @@ public class dEntity implements dObject, Adjustable {
      * zombie will return an unspawned Zombie dEntity </br>
      * super_creeper will return an unspawned custom 'Super_Creeper' dEntity </br>
      *
-     * @param string  the string or dScript argument String
-     * @return  a dEntity, or null
+     * @param string the string or dScript argument String
+     * @return a dEntity, or null
      */
     @Fetchable("e")
-    public static dEntity valueOf(String string) {
+    public static dEntity valueOf(String string, TagContext context) {
         if (string == null) return null;
 
         Matcher m;
@@ -74,7 +133,7 @@ public class dEntity implements dObject, Adjustable {
         // Handle objects with properties through the object fetcher
         m = ObjectFetcher.DESCRIBED_PATTERN.matcher(string);
         if (m.matches()) {
-            return ObjectFetcher.getObjectFrom(dEntity.class, string);
+            return ObjectFetcher.getObjectFrom(dEntity.class, string, context);
         }
 
 
@@ -92,7 +151,7 @@ public class dEntity implements dObject, Adjustable {
                 randomType = EntityType.values()[CoreUtilities.getRandom().nextInt(EntityType.values().length)];
             }
 
-            return new dEntity(randomType, "RANDOM");
+            return new dEntity(DenizenEntityType.getByName(randomType.name()), "RANDOM");
         }
 
         ///////
@@ -121,9 +180,13 @@ public class dEntity implements dObject, Adjustable {
             else if (entityGroup.matches("P@")) {
                 LivingEntity returnable = dPlayer.valueOf(m.group(2)).getPlayerEntity();
 
-                if (returnable != null) return new dEntity(returnable);
-                else dB.echoError("Invalid Player! '" + m.group(2)
-                        + "' could not be found. Has the player logged off?");
+                if (returnable != null) {
+                    return new dEntity(returnable);
+                }
+                else if (context == null || context.debug) {
+                    dB.echoError("Invalid Player! '" + m.group(2)
+                            + "' could not be found. Has the player logged off?");
+                }
             }
 
             // Assume entity
@@ -173,22 +236,24 @@ public class dEntity implements dObject, Adjustable {
                 data2 = m.group(3);
             }
 
-            for (EntityType type : EntityType.values()) {
-                if (type.name().equalsIgnoreCase(m.group(1)))
-                    // Construct a new 'vanilla' unspawned dEntity
-                    return new dEntity(type, data1, data2);
+            // Handle custom DenizenEntityTypes
+            if (DenizenEntityType.isRegistered(m.group(1))) {
+                return new dEntity(DenizenEntityType.getByName(m.group(1)), data1, data2);
             }
         }
 
-        dB.log("valueOf dEntity returning null: " + string);
+        if (context == null || context.debug) {
+            dB.log("valueOf dEntity returning null: " + string);
+        }
 
         return null;
     }
 
-    @Deprecated
-    public static Entity getEntityForID(UUID ID) {
+    public static Entity getEntityForID(UUID id) {
+        if (rememberedEntities.containsKey(id))
+            return rememberedEntities.get(id);
         for (World world : Bukkit.getWorlds()) {
-            net.minecraft.server.v1_8_R1.Entity nmsEntity = ((CraftWorld) world).getHandle().getEntity(ID);
+            net.minecraft.server.v1_8_R3.Entity nmsEntity = ((CraftWorld) world).getHandle().getEntity(id);
 
             // Make sure the nmsEntity is valid, to prevent unpleasant errors
             if (nmsEntity != null) {
@@ -209,25 +274,30 @@ public class dEntity implements dObject, Adjustable {
         // Accept anything that starts with a valid entity object identifier.
         Matcher m;
         m = entity_by_id.matcher(arg);
-        if (m.matches()) return true;
+        if (m.matches()) {
+            return true;
+        }
 
         // No longer picky about e@.. let's remove it from the arg
         arg = arg.replace("e@", "").toUpperCase();
 
         // Allow 'random'
-        if (arg.equals("RANDOM"))
+        if (arg.equals("RANDOM")) {
             return true;
+        }
 
         // Allow any entity script
-        if (ScriptRegistry.containsScript(arg, EntityScriptContainer.class))
+        if (ScriptRegistry.containsScript(arg, EntityScriptContainer.class)) {
             return true;
+        }
 
         // Use regex to make some matcher groups
         m = entity_with_data.matcher(arg);
         if (m.matches()) {
             // Check first word with a valid entity_type (other groups are datas used in constructors)
-            for (EntityType type : EntityType.values())
-                if (type.name().equals(m.group(1))) return true;
+            if (DenizenEntityType.isRegistered(m.group(1))) {
+                return true;
+            }
         }
 
         // No luck otherwise!
@@ -242,42 +312,82 @@ public class dEntity implements dObject, Adjustable {
     public dEntity(Entity entity) {
         if (entity != null) {
             this.entity = entity;
-            EntityScript = EntityScriptHelper.getEntityScript(entity);
+            entityScript = EntityScriptHelper.getEntityScript(entity);
             this.uuid = entity.getUniqueId();
-            this.entity_type = entity.getType();
-            if (Depends.citizens != null && net.citizensnpcs.api.CitizensAPI.getNPCRegistry().isNPC(entity)) {
-                this.npc = new dNPC(net.citizensnpcs.api.CitizensAPI.getNPCRegistry().getNPC(entity));
+            this.entity_type = DenizenEntityType.getByEntity(entity);
+            if (isCitizensNPC(entity)) {
+                this.npc = getNPCFrom(entity);
             }
-        } else dB.echoError("Entity referenced is null!");
+        }
+        else dB.echoError("Entity referenced is null!");
     }
 
+    @Deprecated
     public dEntity(EntityType entityType) {
         if (entityType != null) {
             this.entity = null;
-            this.entity_type = entityType;
-        } else dB.echoError("Entity_type referenced is null!");
+            this.entity_type = DenizenEntityType.getByName(entityType.name());
+        }
+        else dB.echoError("Entity_type referenced is null!");
     }
 
+    @Deprecated
     public dEntity(EntityType entityType, ArrayList<Mechanism> mechanisms) {
         this(entityType);
         this.mechanisms = mechanisms;
     }
 
+    @Deprecated
     public dEntity(EntityType entityType, String data1) {
+        if (entityType != null) {
+            this.entity = null;
+            this.entity_type = DenizenEntityType.getByName(entityType.name());
+            this.data1 = data1;
+        }
+        else dB.echoError("Entity_type referenced is null!");
+    }
+
+    @Deprecated
+    public dEntity(EntityType entityType, String data1, String data2) {
+        if (entityType != null) {
+            this.entity = null;
+            this.entity_type = DenizenEntityType.getByName(entityType.name());
+            this.data1 = data1;
+            this.data2 = data2;
+        }
+        else dB.echoError("Entity_type referenced is null!");
+    }
+
+    public dEntity(DenizenEntityType entityType) {
+        if (entityType != null) {
+            this.entity = null;
+            this.entity_type = entityType;
+        }
+        else dB.echoError("DenizenEntityType referenced is null!");
+    }
+
+    public dEntity(DenizenEntityType entityType, ArrayList<Mechanism> mechanisms) {
+        this(entityType);
+        this.mechanisms = mechanisms;
+    }
+
+    public dEntity(DenizenEntityType entityType, String data1) {
         if (entityType != null) {
             this.entity = null;
             this.entity_type = entityType;
             this.data1 = data1;
-        } else dB.echoError("Entity_type referenced is null!");
+        }
+        else dB.echoError("DenizenEntityType referenced is null!");
     }
 
-    public dEntity(EntityType entityType, String data1, String data2) {
+    public dEntity(DenizenEntityType entityType, String data1, String data2) {
         if (entityType != null) {
             this.entity = null;
             this.entity_type = entityType;
             this.data1 = data1;
             this.data2 = data2;
-        } else dB.echoError("Entity_type referenced is null!");
+        }
+        else dB.echoError("DenizenEntityType referenced is null!");
     }
 
     public dEntity(dNPC npc) {
@@ -289,10 +399,11 @@ public class dEntity implements dObject, Adjustable {
 
             if (npc.isSpawned()) {
                 this.entity = npc.getEntity();
-                this.entity_type = npc.getEntity().getType();
+                this.entity_type = DenizenEntityType.getByName(npc.getEntityType().name());
                 this.uuid = entity.getUniqueId();
             }
-        } else dB.echoError("NPC referenced is null!");
+        }
+        else dB.echoError("NPC referenced is null!");
 
     }
 
@@ -302,34 +413,43 @@ public class dEntity implements dObject, Adjustable {
     /////////////////
 
     private Entity entity = null;
-    private EntityType entity_type = null;
+    private DenizenEntityType entity_type = null;
     private String data1 = null;
     private String data2 = null;
     private DespawnedEntity despawned_entity = null;
     private dNPC npc = null;
     private UUID uuid = null;
-    private String EntityScript = null;
+    private String entityScript = null;
 
-    public EntityType getEntityType() {
+    public DenizenEntityType getEntityType() {
         return entity_type;
     }
 
-    public void setEntityScript(String EntityScript) {
-        this.EntityScript = EntityScript;
+    public EntityType getBukkitEntityType() {
+        return entity_type.getBukkitEntityType();
+    }
+
+    public void setEntityScript(String entityScript) {
+        this.entityScript = entityScript;
     }
 
     public String getEntityScript() {
-        return EntityScript;
+        return entityScript;
     }
 
     /**
      * Returns the unique UUID of this entity
      *
-     * @return  The UUID
+     * @return The UUID
      */
 
     public UUID getUUID() {
         return uuid;
+    }
+
+    public String getSaveName() {
+        String baseID = uuid.toString().toUpperCase().replace("-", "");
+        return baseID.substring(0, 2) + "." + baseID;
     }
 
     /**
@@ -337,18 +457,19 @@ public class dEntity implements dObject, Adjustable {
      * useful for automatically saving dEntities to contexts as
      * dNPCs and dPlayers
      *
-     * @return  The dObject
+     * @return The dObject
      */
 
     public dObject getDenizenObject() {
 
         if (entity == null) return null;
 
-        if (isNPC()) {
+        if (isCitizensNPC())
             return getDenizenNPC();
-        }
-        else if (isPlayer()) return new dPlayer(getPlayer());
-        else return this;
+        else if (isPlayer())
+            return new dPlayer(getPlayer());
+        else
+            return this;
     }
 
     /**
@@ -364,7 +485,7 @@ public class dEntity implements dObject, Adjustable {
     /**
      * Get the living entity corresponding to this dEntity
      *
-     * @return  The living entity
+     * @return The living entity
      */
 
     public LivingEntity getLivingEntity() {
@@ -376,81 +497,84 @@ public class dEntity implements dObject, Adjustable {
     /**
      * Check whether this dEntity is a living entity
      *
-     * @return  true or false
+     * @return true or false
      */
 
     public boolean isLivingEntity() {
         return (entity instanceof LivingEntity);
     }
 
-    public boolean hasInventory() { return getBukkitEntity() instanceof InventoryHolder || isNPC(); }
+    public boolean hasInventory() {
+        return getBukkitEntity() instanceof InventoryHolder || isCitizensNPC();
+    }
 
     /**
      * Get the dNPC corresponding to this dEntity
      *
-     * @return  The dNPC
+     * @return The dNPC
      */
 
     public dNPC getDenizenNPC() {
-        if (Depends.citizens == null)
-            return null;
         if (npc != null)
             return npc;
-        else if (entity != null && net.citizensnpcs.api.CitizensAPI.getNPCRegistry().isNPC(entity))
-            return dNPC.fromEntity(entity);
-        else return null;
+        else
+            return getNPCFrom(entity);
     }
 
     /**
      * Check whether this dEntity is an NPC
      *
-     * @return  true or false
+     * @return true or false
      */
 
     public boolean isNPC() {
-        if (Depends.citizens == null)
-            return false;
-        if (npc != null) return true;
-        else if (entity != null && net.citizensnpcs.api.CitizensAPI.getNPCRegistry().isNPC(entity)) return true;
-        else return false;
+        return npc != null || isNPC(entity);
+    }
+
+    public boolean isCitizensNPC() {
+        return npc != null || isCitizensNPC(entity);
     }
 
     /**
      * Get the Player corresponding to this dEntity
      *
-     * @return  The Player
+     * @return The Player
      */
 
     public Player getPlayer() {
-
-        return (Player) entity;
+        if (isPlayer())
+            return (Player) entity;
+        else
+            return null;
     }
 
     /**
      * Get the dPlayer corresponding to this dEntity
      *
-     * @return  The dPlayer
+     * @return The dPlayer
      */
 
     public dPlayer getDenizenPlayer() {
-
-        return new dPlayer(getPlayer());
+        if (isPlayer())
+            return new dPlayer(getPlayer());
+        else
+            return null;
     }
 
     /**
      * Check whether this dEntity is a Player
      *
-     * @return  true or false
+     * @return true or false
      */
 
     public boolean isPlayer() {
-        return !isNPC() && entity instanceof Player;
+        return entity instanceof Player && !isNPC();
     }
 
     /**
      * Get this dEntity as a Projectile
      *
-     * @return  The Projectile
+     * @return The Projectile
      */
 
     public Projectile getProjectile() {
@@ -461,7 +585,7 @@ public class dEntity implements dObject, Adjustable {
     /**
      * Check whether this dEntity is a Projectile
      *
-     * @return  true or false
+     * @return true or false
      */
 
     public boolean isProjectile() {
@@ -471,7 +595,7 @@ public class dEntity implements dObject, Adjustable {
     /**
      * Get this Projectile entity's shooter
      *
-     * @return  A dEntity of the shooter
+     * @return A dEntity of the shooter
      */
 
     public dEntity getShooter() {
@@ -483,7 +607,6 @@ public class dEntity implements dObject, Adjustable {
 
     /**
      * Set this Projectile entity's shooter
-     *
      */
 
     public void setShooter(dEntity shooter) {
@@ -494,7 +617,7 @@ public class dEntity implements dObject, Adjustable {
     /**
      * Check whether this entity has a shooter.
      *
-     * @return  true or false
+     * @return true or false
      */
 
     public boolean hasShooter() {
@@ -504,7 +627,7 @@ public class dEntity implements dObject, Adjustable {
 
     public Inventory getBukkitInventory() {
         if (hasInventory()) {
-            if (!isNPC())
+            if (!isCitizensNPC())
                 return ((InventoryHolder) getBukkitEntity()).getInventory();
         }
         return null;
@@ -513,35 +636,47 @@ public class dEntity implements dObject, Adjustable {
     /**
      * Returns this entity's dInventory.
      *
-     * @return  the entity's dInventory
+     * @return the entity's dInventory
      */
 
     public dInventory getInventory() {
-        return hasInventory() ? isNPC() ? getDenizenNPC().getDenizenInventory()
+        return hasInventory() ? isCitizensNPC() ? getDenizenNPC().getDenizenInventory()
                 : new dInventory(getBukkitInventory()) : null;
     }
 
     public String getName() {
-        if (isNPC())
+        if (isCitizensNPC()) {
             return getDenizenNPC().getCitizen().getName();
-        if (entity instanceof Player)
-            return ((Player) entity).getName();
-        if (isLivingEntity()) {
-            String customName = getLivingEntity().getCustomName();
-            if (customName != null)
-                return customName;
         }
-        return entity_type.name();
+        if (entity instanceof CraftFakePlayer) {
+            return ((CraftFakePlayer) entity).getFullName();
+        }
+        if (entity instanceof Player) {
+            return ((Player) entity).getName();
+        }
+        String customName = entity.getCustomName();
+        if (customName != null) {
+            return customName;
+        }
+        return entity_type.getName();
     }
 
     /**
      * Returns this entity's equipment
      *
-     * @return  the entity's equipment
+     * @return the entity's equipment
      */
 
     public dList getEquipment() {
-        return getInventory().getEquipment();
+        if (isCitizensNPC() || isPlayer()) {
+            return getInventory().getEquipment(); // TODO: Is this part needed?
+        }
+        ItemStack[] equipment = getLivingEntity().getEquipment().getArmorContents();
+        dList equipmentList = new dList();
+        for (ItemStack item : equipment) {
+            equipmentList.add(new dItem(item).identify());
+        }
+        return equipmentList;
     }
 
     /**
@@ -549,7 +684,7 @@ public class dEntity implements dObject, Adjustable {
      * entity type, for instance "e@cow", instead of
      * a spawned entity
      *
-     * @return  true or false
+     * @return true or false
      */
 
     public boolean isGeneric() {
@@ -559,7 +694,7 @@ public class dEntity implements dObject, Adjustable {
     /**
      * Get the location of this entity
      *
-     * @return  The Location
+     * @return The Location
      */
 
     public dLocation getLocation() {
@@ -574,12 +709,15 @@ public class dEntity implements dObject, Adjustable {
     /**
      * Get the eye location of this entity
      *
-     * @return  The location
+     * @return The location
      */
 
     public dLocation getEyeLocation() {
 
-        if (!isGeneric() && isLivingEntity()) {
+        if (isPlayer()) {
+            return new dLocation(getPlayer().getEyeLocation());
+        }
+        else if (!isGeneric() && isLivingEntity()) {
             return new dLocation(getLivingEntity().getEyeLocation());
         }
         else if (!isGeneric()) {
@@ -592,7 +730,7 @@ public class dEntity implements dObject, Adjustable {
     /**
      * Gets the velocity of this entity
      *
-     * @return  The velocity's vector
+     * @return The velocity's vector
      */
 
     public Vector getVelocity() {
@@ -605,7 +743,6 @@ public class dEntity implements dObject, Adjustable {
 
     /**
      * Sets the velocity of this entity
-     *
      */
 
     public void setVelocity(Vector vector) {
@@ -623,7 +760,7 @@ public class dEntity implements dObject, Adjustable {
     /**
      * Gets the world of this entity
      *
-     * @return  The entity's world
+     * @return The entity's world
      */
 
     public World getWorld() {
@@ -637,7 +774,7 @@ public class dEntity implements dObject, Adjustable {
     public void spawnAt(Location location) {
         // If the entity is already spawned, teleport it.
 
-        if (isNPC()) {
+        if (isCitizensNPC()) {
             if (getDenizenNPC().getCitizen().isSpawned())
                 getDenizenNPC().getCitizen().teleport(location, TeleportCause.PLUGIN);
             else {
@@ -656,7 +793,8 @@ public class dEntity implements dObject, Adjustable {
                         // TODO: Build entity from custom script
                     }
                     // Else, use the entity_type specified/remembered
-                    else entity = location.getWorld().spawnEntity(location, entity_type);
+                    else
+                        entity = entity_type.spawnNewEntity(location, mechanisms);
 
                     getLivingEntity().teleport(location);
                     getLivingEntity().getEquipment().setArmorContents(despawned_entity.equipment);
@@ -669,7 +807,7 @@ public class dEntity implements dObject, Adjustable {
 
                     org.bukkit.entity.Entity ent = null;
 
-                    if (entity_type.name().matches("PLAYER")) {
+                    if (entity_type.getName().equals("PLAYER")) {
                         if (Depends.citizens == null) {
                             dB.echoError("Cannot spawn entity of type PLAYER!");
                             return;
@@ -681,7 +819,7 @@ public class dEntity implements dObject, Adjustable {
                             uuid = entity.getUniqueId();
                         }
                     }
-                    else if (entity_type.name().matches("FALLING_BLOCK")) {
+                    else if (entity_type.getName().equals("FALLING_BLOCK")) {
 
                         Material material = null;
 
@@ -722,16 +860,16 @@ public class dEntity implements dObject, Adjustable {
                     }
                     else {
 
-                        if (entity_type == EntityType.DROPPED_ITEM)
-                            ent = location.getWorld().dropItem(location, new ItemStack(Material.STONE));
-                        else
-                            ent = location.getWorld().spawnEntity(location, entity_type);
+                        ent = entity_type.spawnNewEntity(location, mechanisms);
                         entity = ent;
+                        if (entity == null) {
+                            return;
+                        }
                         uuid = entity.getUniqueId();
-                        if (EntityScript != null)
-                            EntityScriptHelper.setEntityScript(entity, EntityScript);
+                        if (entityScript != null)
+                            EntityScriptHelper.setEntityScript(entity, entityScript);
 
-                        if (entity_type.name().matches("PIG_ZOMBIE")) {
+                        if (entity_type.getName().equals("PIG_ZOMBIE")) {
 
                             // Give pig zombies golden swords by default, unless data2 specifies
                             // a different weapon
@@ -742,7 +880,7 @@ public class dEntity implements dObject, Adjustable {
                             ((PigZombie) entity).getEquipment()
                                     .setItemInHand(dItem.valueOf(data1).getItemStack());
                         }
-                        else if (entity_type.name().matches("SKELETON")) {
+                        else if (entity_type.getName().equals("SKELETON")) {
 
                             // Give skeletons bows by default, unless data2 specifies
                             // a different weapon
@@ -808,7 +946,8 @@ public class dEntity implements dObject, Adjustable {
                                     setSubtype("org.bukkit.entity.Villager", "org.bukkit.entity.Villager$Profession", "setProfession", data1);
                                 }
 
-                            } catch (Exception e) {
+                            }
+                            catch (Exception e) {
                                 dB.echoError("Error setting custom entity data.");
                                 dB.echoError(e);
                             }
@@ -824,7 +963,7 @@ public class dEntity implements dObject, Adjustable {
                 return;
             }
 
-            for (Mechanism mechanism: mechanisms) {
+            for (Mechanism mechanism : mechanisms) {
                 adjust(mechanism);
             }
             mechanisms.clear();
@@ -849,7 +988,7 @@ public class dEntity implements dObject, Adjustable {
     }
 
     public boolean isValid() {
-        return entity.isValid();
+        return entity != null && entity.isValid();
     }
 
     public void remove() {
@@ -858,7 +997,7 @@ public class dEntity implements dObject, Adjustable {
     }
 
     public void teleport(Location location) {
-        if (isNPC())
+        if (isCitizensNPC())
             getDenizenNPC().getCitizen().teleport(location, TeleportCause.PLUGIN);
         else
             entity.teleport(location);
@@ -868,7 +1007,7 @@ public class dEntity implements dObject, Adjustable {
      * Make this entity target another living entity, attempting both
      * old entity AI and new entity AI targeting methods
      *
-     * @param target  The LivingEntity target
+     * @param target The LivingEntity target
      */
 
     public void target(LivingEntity target) {
@@ -884,10 +1023,7 @@ public class dEntity implements dObject, Adjustable {
                 : null;
 
         ((CraftCreature) entity).getHandle().
-                setGoalTarget(nmsTarget);
-
-        ((CraftCreature) entity).getHandle().
-                setGoalTarget(((CraftLivingEntity) target).getHandle());
+                setGoalTarget(nmsTarget, EntityTargetEvent.TargetReason.CUSTOM, true);
 
         ((CraftCreature) entity).setTarget(target);
     }
@@ -897,16 +1033,16 @@ public class dEntity implements dObject, Adjustable {
      * this Bukkit entity's class and:
      * 1) using a random subtype if value is "RANDOM"
      * 2) looping through the entity's subtypes until one matches the value string
-     *
+     * <p/>
      * Example: setSubtype("org.bukkit.entity.Ocelot", "org.bukkit.entity.Ocelot$Type", "setCatType", "SIAMESE_CAT");
      *
-     * @param entityName  The name of the entity's class.
-     * @param typeName  The name of the entity class' Enum with subtypes.
-     * @param method  The name of the method used to set the subtype of this entity.
-     * @param value  The value of the subtype.
+     * @param entityName The name of the entity's class.
+     * @param typeName   The name of the entity class' Enum with subtypes.
+     * @param method     The name of the method used to set the subtype of this entity.
+     * @param value      The value of the subtype.
      */
 
-    public void setSubtype (String entityName, String typeName, String method, String value)
+    public void setSubtype(String entityName, String typeName, String method, String value)
             throws Exception {
 
         Class<?> entityClass = Class.forName(entityName);
@@ -1020,26 +1156,26 @@ public class dEntity implements dObject, Adjustable {
                 // if (isSaved(this))
                 //    return "e@" + getSaved(this);
 
-            else if (isSpawned())
+            else if (isSpawned() || rememberedEntities.containsKey(entity.getUniqueId()))
                 return "e@" + entity.getUniqueId().toString();
         }
 
         // Try to identify as an entity script
-        if (EntityScript != null)
-            return "e@" + EntityScript;
+        if (entityScript != null)
+            return "e@" + entityScript;
 
         // Check if an entity_type is available
         if (entity_type != null) {
             // Build the pseudo-property-string, if any
             StringBuilder properties = new StringBuilder();
-            for (Mechanism mechanism: mechanisms) {
-                properties.append(mechanism.getName()).append("=").append(mechanism.getValue().asString().replace(';', (char)0x2011)).append(";");
+            for (Mechanism mechanism : mechanisms) {
+                properties.append(mechanism.getName()).append("=").append(mechanism.getValue().asString().replace(';', (char) 0x2011)).append(";");
             }
             String propertyOutput = "";
             if (properties.length() > 0) {
                 propertyOutput = "[" + properties.substring(0, properties.length() - 1) + "]";
             }
-            return "e@" + entity_type.name() + propertyOutput;
+            return "e@" + entity_type.getLowercaseName() + propertyOutput;
         }
 
         return "null";
@@ -1050,7 +1186,7 @@ public class dEntity implements dObject, Adjustable {
     public String identifySimple() {
 
         // Check if entity is an NPC
-        if (npc != null) {
+        if (npc != null && npc.isValid()) {
             return "n@" + npc.getId();
         }
 
@@ -1058,27 +1194,27 @@ public class dEntity implements dObject, Adjustable {
             return "p@" + getPlayer().getName();
 
         // Try to identify as an entity script
-        if (EntityScript != null)
-            return "e@" + EntityScript;
+        if (entityScript != null)
+            return "e@" + entityScript;
 
         // Check if an entity_type is available
         if (entity_type != null)
-            return "e@" + entity_type.name();
+            return "e@" + entity_type.getLowercaseName();
 
         return "null";
     }
 
 
     public String identifyType() {
-        if (isNPC()) return "npc";
+        if (isCitizensNPC()) return "npc";
         else if (isPlayer()) return "player";
-        else return "e@" + entity_type.name();
+        else return "e@" + entity_type.getName();
     }
 
     public String identifySimpleType() {
-        if (isNPC()) return "npc";
+        if (isCitizensNPC()) return "npc";
         else if (isPlayer()) return "player";
-        else return entity_type.name();
+        else return entity_type.getLowercaseName();
     }
 
     @Override
@@ -1088,7 +1224,39 @@ public class dEntity implements dObject, Adjustable {
 
     @Override
     public boolean isUnique() {
-        return (isPlayer() || isNPC() || isSpawned());  // || isSaved()
+        return isPlayer() || isCitizensNPC() || isSpawned()
+                || (entity != null && rememberedEntities.containsKey(entity.getUniqueId()));  // || isSaved()
+    }
+
+    public boolean matchesEntity(String ent) {
+        if (ent.equalsIgnoreCase("npc")) {
+            return this.isCitizensNPC();
+        }
+        if (ent.equalsIgnoreCase("entity")) {
+            return true;
+        }
+        if (ent.equalsIgnoreCase("player")) {
+            return this.isPlayer();
+        }
+        if (ent.equalsIgnoreCase("vehicle")) {
+            return entity instanceof Vehicle;
+        }
+        if (ent.equalsIgnoreCase("projectile")) {
+            return entity instanceof Projectile;
+        }
+        if (ent.equalsIgnoreCase(getName())) {
+            return true;
+        }
+        if (ent.equalsIgnoreCase(entity_type.getLowercaseName())) {
+            return true;
+        }
+        if (entity != null && getEntityScript() != null) {
+            return ent.equalsIgnoreCase(getEntityScript());
+        }
+        if (uuid != null && uuid.toString().equals(ent)) {
+            return true;
+        }
+        return false;
     }
 
     @Override
@@ -1179,7 +1347,7 @@ public class dEntity implements dObject, Adjustable {
         // Returns the type of the entity.
         // -->
         if (attribute.startsWith("entity_type")) {
-            return new Element(entity_type.name()).getAttribute(attribute.fulfill(1));
+            return new Element(entity_type.getName()).getAttribute(attribute.fulfill(1));
         }
 
         // <--[tag]
@@ -1225,8 +1393,81 @@ public class dEntity implements dObject, Adjustable {
         // Returns the name of the entity script that spawned this entity, if any.
         // -->
         if (attribute.startsWith("script")) {
-            return new Element(EntityScript == null ? "null": EntityScript)
+            return new Element(entityScript == null ? "null" : entityScript)
                     .getAttribute(attribute.fulfill(1));
+        }
+
+        // <--[tag]
+        // @attribute <e@entity.has_flag[<flag_name>]>
+        // @returns Element(Boolean)
+        // @description
+        // returns true if the entity has the specified flag, otherwise returns false.
+        // -->
+        if (attribute.startsWith("has_flag")) {
+            String flag_name;
+            if (attribute.hasContext(1)) flag_name = attribute.getContext(1);
+            else return null;
+            return new Element(FlagManager.entityHasFlag(this, flag_name)).getAttribute(attribute.fulfill(1));
+        }
+
+        // <--[tag]
+        // @attribute <e@entity.flag[<flag_name>]>
+        // @returns Flag dList
+        // @description
+        // returns the specified flag from the entity.
+        // -->
+        if (attribute.startsWith("flag")) {
+            String flag_name;
+            if (attribute.hasContext(1)) flag_name = attribute.getContext(1);
+            else return null;
+            if (attribute.getAttribute(2).equalsIgnoreCase("is_expired")
+                    || attribute.startsWith("isexpired"))
+                return new Element(!FlagManager.entityHasFlag(this, flag_name))
+                        .getAttribute(attribute.fulfill(2));
+            if (attribute.getAttribute(2).equalsIgnoreCase("size") && !FlagManager.entityHasFlag(this, flag_name))
+                return new Element(0).getAttribute(attribute.fulfill(2));
+            if (FlagManager.entityHasFlag(this, flag_name)) {
+                FlagManager.Flag flag = DenizenAPI.getCurrentInstance().flagManager()
+                        .getEntityFlag(this, flag_name);
+                return new dList(flag.toString(), true, flag.values())
+                        .getAttribute(attribute.fulfill(1));
+            }
+            return new Element(identify()).getAttribute(attribute);
+        }
+
+        // <--[tag]
+        // @attribute <e@entity.list_flags[(regex:)<search>]>
+        // @returns dList
+        // @description
+        // Returns a list of an entity's flag names, with an optional search for
+        // names containing a certain pattern.
+        // -->
+        if (attribute.startsWith("list_flags")) {
+            dList allFlags = new dList(DenizenAPI.getCurrentInstance().flagManager().listEntityFlags(this));
+            dList searchFlags = null;
+            if (!allFlags.isEmpty() && attribute.hasContext(1)) {
+                searchFlags = new dList();
+                String search = attribute.getContext(1);
+                if (search.startsWith("regex:")) {
+                    try {
+                        Pattern pattern = Pattern.compile(search.substring(6), Pattern.CASE_INSENSITIVE);
+                        for (String flag : allFlags)
+                            if (pattern.matcher(flag).matches())
+                                searchFlags.add(flag);
+                    }
+                    catch (Exception e) {
+                        dB.echoError(e);
+                    }
+                }
+                else {
+                    search = CoreUtilities.toLowerCase(search);
+                    for (String flag : allFlags)
+                        if (flag.toLowerCase().contains(search))
+                            searchFlags.add(flag);
+                }
+            }
+            return searchFlags == null ? allFlags.getAttribute(attribute.fulfill(1))
+                    : searchFlags.getAttribute(attribute.fulfill(1));
         }
 
         if (entity == null) {
@@ -1265,9 +1506,7 @@ public class dEntity implements dObject, Adjustable {
         // Otherwise, returns null.
         // -->
         if (attribute.startsWith("custom_name")) {
-            if (!isLivingEntity() || getLivingEntity().getCustomName() == null)
-                return null;
-            return new Element(getLivingEntity().getCustomName()).getAttribute(attribute.fulfill(1));
+            return new Element(entity.getCustomName()).getAttribute(attribute.fulfill(1));
         }
 
         // <--[tag]
@@ -1278,9 +1517,7 @@ public class dEntity implements dObject, Adjustable {
         // Returns true if the entity's custom name is visible.
         // -->
         if (attribute.startsWith("custom_name.visible")) {
-            if (!isLivingEntity())
-                return null;
-            return new Element(getLivingEntity().isCustomNameVisible())
+            return new Element(entity.isCustomNameVisible())
                     .getAttribute(attribute.fulfill(2));
         }
 
@@ -1303,80 +1540,6 @@ public class dEntity implements dObject, Adjustable {
         /////////////////
 
         // <--[tag]
-        // @attribute <e@entity.equipment.boots>
-        // @returns dItem
-        // @group inventory
-        // @description
-        // returns the item the entity is wearing as boots, or null
-        // if none.
-        // -->
-        if (attribute.startsWith("equipment.boots")) {
-            if (getLivingEntity().getEquipment().getBoots() != null) {
-                return new dItem(getLivingEntity().getEquipment().getBoots())
-                        .getAttribute(attribute.fulfill(2));
-            }
-        }
-
-        // <--[tag]
-        // @attribute <e@entity.equipment.chestplate>
-        // @returns dItem
-        // @group inventory
-        // @description
-        // returns the item the entity is wearing as a chestplate, or null
-        // if none.
-        // -->
-        else if (attribute.startsWith("equipment.chestplate") ||
-                attribute.startsWith("equipment.chest")) {
-            if (getLivingEntity().getEquipment().getChestplate() != null) {
-                return new dItem(getLivingEntity().getEquipment().getChestplate())
-                        .getAttribute(attribute.fulfill(2));
-            }
-        }
-
-        // <--[tag]
-        // @attribute <e@entity.equipment.helmet>
-        // @returns dItem
-        // @group inventory
-        // @description
-        // returns the item the entity is wearing as a helmet, or null
-        // if none.
-        // -->
-        else if (attribute.startsWith("equipment.helmet") ||
-                attribute.startsWith("equipment.head")) {
-            if (getLivingEntity().getEquipment().getHelmet() != null) {
-                return new dItem(getLivingEntity().getEquipment().getHelmet())
-                        .getAttribute(attribute.fulfill(2));
-            }
-        }
-
-        // <--[tag]
-        // @attribute <e@entity.equipment.leggings>
-        // @returns dItem
-        // @group inventory
-        // @description
-        // returns the item the entity is wearing as leggings, or null
-        // if none.
-        // -->
-        else if (attribute.startsWith("equipment.leggings") ||
-                attribute.startsWith("equipment.legs")) {
-            if (getLivingEntity().getEquipment().getLeggings() != null) {
-                return new dItem(getLivingEntity().getEquipment().getLeggings())
-                        .getAttribute(attribute.fulfill(2));
-            }
-        }
-
-        // <--[tag]
-        // @attribute <e@entity.equipment>
-        // @returns dList
-        // @group inventory
-        // @description
-        // returns a dInventory containing the entity's equipment.
-        // -->
-        else if (attribute.startsWith("equipment")) {
-            return getEquipment().getAttribute(attribute.fulfill(1));
-        }
-
-        // <--[tag]
         // @attribute <e@entity.item_in_hand>
         // @returns dItem
         // @group inventory
@@ -1397,13 +1560,13 @@ public class dEntity implements dObject, Adjustable {
         // <--[tag]
         // @attribute <e@entity.map_trace>
         // @returns dLocation
-        // @group inventory
+        // @group location
         // @description
         // returns a 2D location indicating where on the map the entity's looking at.
         // Each coordinate is in the range of 0 to 128.
         // -->
         if (attribute.startsWith("map_trace")) {
-            Rotation.MapTraceResult mtr  = Rotation.mapTrace(getLivingEntity(), 200);
+            Rotation.MapTraceResult mtr = Rotation.mapTrace(getLivingEntity(), 200);
             if (mtr != null) {
                 double x = 0;
                 double y = 0;
@@ -1477,11 +1640,29 @@ public class dEntity implements dObject, Adjustable {
         // Returns the location of the block the entity is looking at.
         // Optionally, specify a maximum range to find the location from.
         // -->
+        // <--[tag]
+        // @attribute <e@entity.location.cursor_on[<range>].ignore[<material>|...]>
+        // @returns dLocation
+        // @group location
+        // @description
+        // Returns the location of the block the entity is looking at, ignoring
+        // the specified materials along the way. Note that air is always an
+        // ignored material.
+        // Optionally, specify a maximum range to find the location from.
+        // -->
         if (attribute.startsWith("location.cursor_on")) {
             int range = attribute.getIntContext(2);
             if (range < 1) range = 50;
-            return new dLocation(getLivingEntity().getTargetBlock(null, range).getLocation().clone())
-                    .getAttribute(attribute.fulfill(2));
+            Set<Material> set = new HashSet<Material>();
+            set.add(Material.AIR);
+            attribute = attribute.fulfill(2);
+            if (attribute.startsWith("ignore") && attribute.hasContext(1)) {
+                List<dMaterial> ignoreList = dList.valueOf(attribute.getContext(1)).filter(dMaterial.class);
+                for (dMaterial material : ignoreList)
+                    set.add(material.getMaterial());
+                attribute = attribute.fulfill(1);
+            }
+            return new dLocation(getLivingEntity().getTargetBlock(set, range).getLocation()).getAttribute(attribute);
         }
 
         // <--[tag]
@@ -1584,6 +1765,17 @@ public class dEntity implements dObject, Adjustable {
                     .getAttribute(attribute.fulfill(1));
 
         // <--[tag]
+        // @attribute <e@entity.on_fire>
+        // @returns Element(Boolean)
+        // @group attributes
+        // @description
+        // Returns if the entity is currently ablaze or not.
+        // -->
+        if (attribute.startsWith("on_fire")) {
+            return new Element(entity.getFireTicks() > 0).getAttribute(attribute.fulfill(1));
+        }
+
+        // <--[tag]
         // @attribute <e@entity.get_leash_holder>
         // @returns dEntity
         // @group attributes
@@ -1655,78 +1847,36 @@ public class dEntity implements dObject, Adjustable {
         // Returns whether the entity has a specified effect.
         // If no effect is specified, returns whether the entity has any effect.
         // -->
-        // TODO: add list_effects ?
         if (attribute.startsWith("has_effect")) {
-            Boolean returnElement = false;
+            boolean returnElement = false;
             if (attribute.hasContext(1)) {
-                for (org.bukkit.potion.PotionEffect effect : getLivingEntity().getActivePotionEffects())
-                    if (effect.getType().equals(PotionEffectType.getByName(attribute.getContext(1))))
+                PotionEffectType effectType = PotionEffectType.getByName(attribute.getContext(1));
+                for (org.bukkit.potion.PotionEffect effect : getLivingEntity().getActivePotionEffects()) {
+                    if (effect.getType().equals(effectType)) {
                         returnElement = true;
+                    }
+                }
             }
-            else if (!getLivingEntity().getActivePotionEffects().isEmpty()) returnElement = true;
+            else if (!getLivingEntity().getActivePotionEffects().isEmpty()) {
+                returnElement = true;
+            }
             return new Element(returnElement).getAttribute(attribute.fulfill(1));
         }
 
         // <--[tag]
-        // @attribute <e@entity.health.formatted>
-        // @returns Element
-        // @group attributes
-        // @description
-        // Returns a formatted value of the player's current health level.
-        // May be 'dying', 'seriously wounded', 'injured', 'scraped', or 'healthy'.
+        // @attribute <e@entity.list_effects>
+        // @returns dList
+        // @group attribute
+        // Returns the list of active potion effects on the entity, in the format
+        // li@TYPE,AMPLIFIER,DURATION|...
         // -->
-        if (attribute.startsWith("health.formatted")) {
-            double maxHealth = getLivingEntity().getMaxHealth();
-            if (attribute.hasContext(2))
-                maxHealth = attribute.getIntContext(2);
-            if ((float) getLivingEntity().getHealth() / maxHealth < .10)
-                return new Element("dying").getAttribute(attribute.fulfill(2));
-            else if ((float) getLivingEntity().getHealth() / maxHealth < .40)
-                return new Element("seriously wounded").getAttribute(attribute.fulfill(2));
-            else if ((float) getLivingEntity().getHealth() / maxHealth < .75)
-                return new Element("injured").getAttribute(attribute.fulfill(2));
-            else if ((float) getLivingEntity().getHealth() / maxHealth < 1)
-                return new Element("scraped").getAttribute(attribute.fulfill(2));
-
-            else return new Element("healthy").getAttribute(attribute.fulfill(2));
+        if (attribute.startsWith("list_effects")) {
+            dList effects = new dList();
+            for (PotionEffect effect : getLivingEntity().getActivePotionEffects()) {
+                effects.add(effect.getType().getName() + "," + effect.getAmplifier() + "," + effect.getDuration() + "t");
+            }
+            return effects.getAttribute(attribute.fulfill(1));
         }
-
-        // <--[tag]
-        // @attribute <e@entity.health.max>
-        // @returns Element(Decimal)
-        // @group attributes
-        // @description
-        // Returns the maximum health of the entity.
-        // -->
-        if (attribute.startsWith("health.max"))
-            return new Element(getLivingEntity().getMaxHealth())
-                    .getAttribute(attribute.fulfill(2));
-
-        // <--[tag]
-        // @attribute <e@entity.health.percentage>
-        // @returns Element(Decimal)
-        // @group attributes
-        // @description
-        // Returns the entity's current health as a percentage.
-        // -->
-        if (attribute.startsWith("health.percentage")) {
-            double maxHealth = getLivingEntity().getMaxHealth();
-            if (attribute.hasContext(2))
-                maxHealth = attribute.getIntContext(2);
-            return new Element((getLivingEntity().getHealth() / maxHealth) * 100)
-                    .getAttribute(attribute.fulfill(2));
-        }
-
-        // <--[tag]
-        // @attribute <e@entity.health>
-        // @returns Element(Decimal)
-        // @group attributes
-        // @description
-        // Returns the current health of the entity.
-        // -->
-        if (attribute.startsWith("health"))
-            return new Element(getLivingEntity().getHealth())
-                    .getAttribute(attribute.fulfill(1));
 
         // <--[tag]
         // @attribute <e@entity.can_breed>
@@ -1736,7 +1886,7 @@ public class dEntity implements dObject, Adjustable {
         // Returns whether the animal entity is capable of mating with another of its kind.
         // -->
         if (attribute.startsWith("can_breed"))
-            return new Element(((Ageable)getLivingEntity()).canBreed())
+            return new Element(((Ageable) getLivingEntity()).canBreed())
                     .getAttribute(attribute.fulfill(1));
 
         // <--[tag]
@@ -1747,7 +1897,7 @@ public class dEntity implements dObject, Adjustable {
         // Returns whether the animal entity is trying to with another of its kind.
         // -->
         if (attribute.startsWith("is_breeding"))
-            return new Element(((CraftAnimals)getLivingEntity()).getHandle().ce())
+            return new Element(((CraftAnimals) getLivingEntity()).getHandle().ce())
                     .getAttribute(attribute.fulfill(1));
 
         // <--[tag]
@@ -1823,7 +1973,7 @@ public class dEntity implements dObject, Adjustable {
         // Returns the player that last killed the entity.
         // -->
         if (attribute.startsWith("killer"))
-            return new dPlayer(getLivingEntity().getKiller())
+            return getPlayerFrom(getLivingEntity().getKiller())
                     .getAttribute(attribute.fulfill(1));
 
         // <--[tag]
@@ -1906,7 +2056,6 @@ public class dEntity implements dObject, Adjustable {
             return new Duration(entity.getTicksLived() / 20)
                     .getAttribute(attribute.fulfill(1));
 
-
         /////////////////////
         //   TYPE ATTRIBUTES
         /////////////////
@@ -1941,10 +2090,10 @@ public class dEntity implements dObject, Adjustable {
         // @returns Element(Boolean)
         // @group data
         // @description
-        // Returns whether the entity is an NPC.
+        // Returns whether the entity is a Citizens NPC.
         // -->
         if (attribute.startsWith("is_npc")) {
-            return new Element(isNPC())
+            return new Element(isCitizensNPC())
                     .getAttribute(attribute.fulfill(1));
         }
 
@@ -2026,10 +2175,12 @@ public class dEntity implements dObject, Adjustable {
         // @description
         // Returns the entity's full description, including all properties.
         // -->
-        if (attribute.startsWith("describe"))
-            return new Element("e@" + getEntityType().name().toLowerCase()
+        if (attribute.startsWith("describe")) {
+            String escript = getEntityScript();
+            return new Element("e@" + (escript != null && escript.length() > 0 ? escript : getEntityType().getLowercaseName())
                     + PropertyParser.getPropertiesString(this))
                     .getAttribute(attribute.fulfill(1));
+        }
 
         // Iterate through this object's properties' attributes
         for (Property property : PropertyParser.getProperties(this)) {
@@ -2049,6 +2200,9 @@ public class dEntity implements dObject, Adjustable {
     public void applyProperty(Mechanism mechanism) {
         if (isGeneric()) {
             mechanisms.add(mechanism);
+        }
+        else if (rememberedEntities.containsKey(entity.getUniqueId())) {
+            adjust(mechanism);
         }
         else {
             dB.echoError("Cannot apply properties to an already-spawned entity!");
@@ -2084,12 +2238,11 @@ public class dEntity implements dObject, Adjustable {
         // @input Element
         // @description
         // Sets the custom name of the entity.
-        // The entity must be living.
         // @tags
         // <e@entity.custom_name>
         // -->
         if (mechanism.matches("custom_name"))
-            getLivingEntity().setCustomName(value.asString());
+            entity.setCustomName(value.asString());
 
         // <--[mechanism]
         // @object dEntity
@@ -2097,12 +2250,11 @@ public class dEntity implements dObject, Adjustable {
         // @input Element(Boolean)
         // @description
         // Sets whether the custom name is visible.
-        // The entity must be living.
         // @tags
         // <e@entity.custom_name.visible>
         // -->
         if (mechanism.matches("custom_name_visibility") && mechanism.requireBoolean())
-            getLivingEntity().setCustomNameVisible(value.asBoolean());
+            entity.setCustomNameVisible(value.asBoolean());
 
         // <--[mechanism]
         // @object dEntity
@@ -2144,54 +2296,6 @@ public class dEntity implements dObject, Adjustable {
 
         // <--[mechanism]
         // @object dEntity
-        // @name max_health
-        // @input Number
-        // @description
-        // Sets the maximum health the entity may have.
-        // The entity must be living.
-        // @tags
-        // <e@entity.health>
-        // <e@entity.health.max>
-        // -->
-        // TODO: Maybe a property?
-        if (mechanism.matches("max_health") && mechanism.requireInteger()) {
-            if (isNPC()) {
-                if (getDenizenNPC().getCitizen().hasTrait(HealthTrait.class))
-                    getDenizenNPC().getCitizen().getTrait(HealthTrait.class).setMaxhealth(mechanism.getValue().asInt());
-                else
-                    dB.echoError("NPC doesn't have health trait!");
-            }
-            else if (isLivingEntity()) {
-                getLivingEntity().setMaxHealth(mechanism.getValue().asDouble());
-            }
-            else {
-                dB.echoError("Entity is not alive!");
-            }
-        }
-
-        // <--[mechanism]
-        // @object dEntity
-        // @name health
-        // @input Number(Decimal)
-        // @description
-        // Sets the amount of health the entity has.
-        // The entity must be living.
-        // @tags
-        // <e@entity.health>
-        // <e@entity.health.max>
-        // -->
-        // TODO: Maybe a property?
-        if (mechanism.matches("health") && mechanism.requireDouble()) {
-            if (isLivingEntity()) {
-                getLivingEntity().setHealth(mechanism.getValue().asDouble());
-            }
-            else {
-                dB.echoError("Entity is not alive!");
-            }
-        }
-
-        // <--[mechanism]
-        // @object dEntity
         // @name can_breed
         // @input Element(Boolean)
         // @description
@@ -2201,7 +2305,7 @@ public class dEntity implements dObject, Adjustable {
         // <e@entity.can_breed>
         // -->
         if (mechanism.matches("can_breed") && mechanism.requireBoolean())
-            ((Ageable)getLivingEntity()).setBreed(true);
+            ((Ageable) getLivingEntity()).setBreed(true);
 
         // <--[mechanism]
         // @object dEntity
@@ -2217,9 +2321,9 @@ public class dEntity implements dObject, Adjustable {
             dList list = dList.valueOf(value.asString());
             if (list.size() > 1) {
                 if (list.get(0).equalsIgnoreCase("true"))
-                    ((CraftAnimals)getLivingEntity()).getHandle().a((EntityHuman) null);
+                    ((CraftAnimals) getLivingEntity()).getHandle().a((EntityHuman) null);
                 else
-                    ((CraftAnimals)getLivingEntity()).getHandle().cq();
+                    ((CraftAnimals) getLivingEntity()).getHandle().cq();
             }
         }
 
@@ -2313,7 +2417,7 @@ public class dEntity implements dObject, Adjustable {
         // -->
         if (mechanism.matches("interact_with") && mechanism.requireObject(dLocation.class)) {
             dLocation interactLocation = value.asType(dLocation.class);
-            CraftPlayer craftPlayer = (CraftPlayer)getPlayer();
+            CraftPlayer craftPlayer = (CraftPlayer) getPlayer();
             BlockPosition pos =
                     new BlockPosition(interactLocation.getBlockX(),
                             interactLocation.getBlockY(),
@@ -2337,6 +2441,7 @@ public class dEntity implements dObject, Adjustable {
         if (mechanism.matches("play_death")) {
             getLivingEntity().playEffect(EntityEffect.DEATH);
         }
+
 
         // Iterate through this object's properties' mechanisms
         for (Property property : PropertyParser.getProperties(this)) {

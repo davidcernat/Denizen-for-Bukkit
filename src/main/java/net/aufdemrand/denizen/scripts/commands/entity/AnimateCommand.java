@@ -1,26 +1,18 @@
 package net.aufdemrand.denizen.scripts.commands.entity;
 
-import java.util.List;
-
+import net.aufdemrand.denizen.objects.dEntity;
+import net.aufdemrand.denizen.utilities.debugging.dB;
+import net.aufdemrand.denizencore.exceptions.CommandExecutionException;
+import net.aufdemrand.denizencore.exceptions.InvalidArgumentsException;
+import net.aufdemrand.denizencore.objects.aH;
+import net.aufdemrand.denizencore.objects.dList;
+import net.aufdemrand.denizencore.scripts.ScriptEntry;
+import net.aufdemrand.denizencore.scripts.commands.AbstractCommand;
+import net.citizensnpcs.util.PlayerAnimation;
 import org.bukkit.EntityEffect;
 import org.bukkit.entity.Player;
 
-import net.aufdemrand.denizencore.exceptions.CommandExecutionException;
-import net.aufdemrand.denizencore.exceptions.InvalidArgumentsException;
-import net.aufdemrand.denizen.objects.aH;
-import net.aufdemrand.denizen.objects.dEntity;
-import net.aufdemrand.denizen.objects.dList;
-import net.aufdemrand.denizen.scripts.ScriptEntry;
-import net.aufdemrand.denizen.scripts.commands.AbstractCommand;
-import net.aufdemrand.denizen.utilities.debugging.dB;
-import net.citizensnpcs.util.PlayerAnimation;
-
-/**
- * Animate a list of entities using a PlayerAnimation from Citizens2
- * or an EntityEffect from Bukkit.
- *
- * @author David Cernat
- */
+import java.util.List;
 
 public class AnimateCommand extends AbstractCommand {
 
@@ -82,20 +74,14 @@ public class AnimateCommand extends AbstractCommand {
 
                         Player player = (Player) entity.getBukkitEntity();
 
-                        // Go through Citizens' PlayerAnimations and find the one
-                        // that matches
-                        PlayerAnimation[] animationArray = PlayerAnimation.class.getEnumConstants();
+                        animation.play(player);
+                    }
+                    else {
+                        entity.getBukkitEntity().playEffect(effect);
+                    }
 
-                        for (PlayerAnimation current : animationArray) {
-
-                            if (current.equals(animation)) {
-                                current.play(player);
-                                break;
-                            }
-                        }
-                    } else entity.getBukkitEntity().playEffect(effect);
-
-                } catch (Exception e) {
+                }
+                catch (Exception e) {
                     dB.echoError(scriptEntry.getResidingQueue(), "Error playing that animation!");
                 } // We tried!
             }

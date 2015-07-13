@@ -1,15 +1,15 @@
 package net.aufdemrand.denizen.scripts.requirements;
 
-import net.aufdemrand.denizen.Denizen;
 import net.aufdemrand.denizen.exceptions.RequirementCheckException;
-import net.aufdemrand.denizen.objects.aH;
-import net.aufdemrand.denizen.objects.dScript;
 import net.aufdemrand.denizen.tags.BukkitTagContext;
+import net.aufdemrand.denizen.utilities.DenizenAPI;
 import net.aufdemrand.denizen.utilities.debugging.dB;
+import net.aufdemrand.denizencore.objects.aH;
+import net.aufdemrand.denizencore.objects.dScript;
+import net.aufdemrand.denizencore.tags.TagManager;
 import org.bukkit.ChatColor;
 
 import java.util.List;
-import net.aufdemrand.denizen.tags.TagManager;
 
 /**
  * This class implements requirement checking for scripts.
@@ -18,10 +18,7 @@ import net.aufdemrand.denizen.tags.TagManager;
  */
 public class RequirementChecker {
 
-    private Denizen plugin;
-
-    public RequirementChecker(Denizen denizen) {
-        plugin = denizen;
+    public RequirementChecker() {
     }
 
     /**
@@ -29,7 +26,6 @@ public class RequirementChecker {
      *
      * @param context the context to check against
      * @return true if the list meets the requirements and context set
-     *
      */
     public boolean check(RequirementsContext context) {
 
@@ -102,10 +98,12 @@ public class RequirementChecker {
                     if (!negativeRequirement) {
                         dB.echoApproval("Checking 'VALUEOF " + arg + "... requirement met!");
                         numberMet++;
-                    } else
+                    }
+                    else
                         dB.echoApproval("Checking '-VALUEOF " + arg + "...requirement not met!");
 
-                } else {
+                }
+                else {
                     if (!negativeRequirement)
                         dB.echoApproval("Checking 'VALUEOF " + arg + "...requirement not met!");
 
@@ -115,10 +113,11 @@ public class RequirementChecker {
                     }
                 }
 
-            } else
+            }
+            else
                 // Check requirement with RequirementRegistry
-                if (plugin.getRequirementRegistry().list().containsKey(reqString)) {
-                    AbstractRequirement requirement = plugin.getRequirementRegistry().get(reqString);
+                if (DenizenAPI.getCurrentInstance().getRequirementRegistry().list().containsKey(reqString)) {
+                    AbstractRequirement requirement = DenizenAPI.getCurrentInstance().getRequirementRegistry().get(reqString);
 
                     // Remove command name from arguments
                     argumentList.remove(0);
@@ -141,7 +140,8 @@ public class RequirementChecker {
                             }
                             numberMet++;
                             dB.echoApproval("Checked '" + requirement.getName() + "'" + " ...requirement met!");
-                        } else {
+                        }
+                        else {
                             if (!firstReqChecked) {
                                 firstReqMet = false;
                                 firstReqChecked = true;
@@ -149,12 +149,14 @@ public class RequirementChecker {
                             dB.echoApproval("Checked '" + requirement.getName() + "'" + " ...requirement not met!");
                         }
 
-                    } catch (Throwable e) {
+                    }
+                    catch (Throwable e) {
                         if (e instanceof RequirementCheckException) {
                             String msg = e.getMessage().isEmpty() || e == null ? "No Error message defined!" : e.getMessage();
                             dB.echoError("Woah! Invalid arguments were specified: " + msg);
                             dB.echoError("Usage: " + requirement.getUsageHint());
-                        } else {
+                        }
+                        else {
                             dB.echoError("Woah! An exception has been called " + (requirement != null ? "for Requirement '" + requirement.getName() + "'" : "") + "!");
                             dB.echoError(e);
                         }

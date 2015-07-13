@@ -1,22 +1,23 @@
 package net.aufdemrand.denizen.utilities.entity;
 
 import net.aufdemrand.denizen.utilities.debugging.dB;
-import net.minecraft.server.v1_8_R1.EntityArrow;
+import net.aufdemrand.denizencore.objects.Mechanism;
+import net.minecraft.server.v1_8_R3.EntityArrow;
 import org.bukkit.Location;
-import org.bukkit.craftbukkit.v1_8_R1.CraftServer;
-import org.bukkit.craftbukkit.v1_8_R1.CraftWorld;
-import org.bukkit.craftbukkit.v1_8_R1.entity.CraftArrow;
+import org.bukkit.craftbukkit.v1_8_R3.CraftServer;
+import org.bukkit.craftbukkit.v1_8_R3.CraftWorld;
+import org.bukkit.craftbukkit.v1_8_R3.entity.CraftArrow;
 import org.bukkit.entity.Arrow;
-import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Vehicle;
 import org.bukkit.permissions.Permission;
 import org.bukkit.permissions.PermissionAttachment;
 import org.bukkit.permissions.PermissionAttachmentInfo;
 import org.bukkit.plugin.Plugin;
 
+import java.util.ArrayList;
 import java.util.Set;
 
-public class CraftFakeArrow extends CraftArrow implements Vehicle {
+public class CraftFakeArrow extends CraftArrow implements DenizenCustomEntity, Vehicle {
     public CraftFakeArrow(CraftServer craftServer, EntityArrow entityArrow) {
         super(craftServer, entityArrow);
     }
@@ -33,7 +34,8 @@ public class CraftFakeArrow extends CraftArrow implements Vehicle {
         super.remove();
     }
 
-    public static Arrow createArrow(Location location) {
+    @CreateEntity
+    public static Arrow createArrow(Location location, ArrayList<Mechanism> mechanisms) {
         CraftWorld world = (CraftWorld) location.getWorld();
         EntityArrow arrow = new FakeArrowEntity(world, location);
         return (Arrow) arrow.getBukkitEntity();
@@ -113,5 +115,10 @@ public class CraftFakeArrow extends CraftArrow implements Vehicle {
     }
 
     public void removeAttachment(PermissionAttachment attachment) {
+    }
+
+    @Override
+    public String getEntityTypeName() {
+        return "FAKE_ARROW";
     }
 }

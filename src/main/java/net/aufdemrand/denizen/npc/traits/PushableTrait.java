@@ -6,10 +6,10 @@ import net.citizensnpcs.api.ai.event.NavigationCompleteEvent;
 import net.citizensnpcs.api.event.NPCPushEvent;
 import net.citizensnpcs.api.persistence.Persist;
 import net.citizensnpcs.api.trait.Trait;
-import net.minecraft.server.v1_8_R1.EntityLiving;
+import net.minecraft.server.v1_8_R3.EntityLiving;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
-import org.bukkit.craftbukkit.v1_8_R1.entity.CraftLivingEntity;
+import org.bukkit.craftbukkit.v1_8_R3.entity.CraftLivingEntity;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -140,19 +140,19 @@ public class PushableTrait extends Trait implements Listener {
     // None
     //
     // -->
+
     /**
      * Fires an 'On Push:' action upon being pushed.
-     *
      */
     @EventHandler
-    public void NPCPush (NPCPushEvent event) {
+    public void NPCPush(NPCPushEvent event) {
         if (event.getNPC() == npc && pushable) {
             event.setCancelled(false);
             // On Push action / Push Trigger
             if (System.currentTimeMillis() > pushedTimer) {
                 // Get pusher
                 Player pusher = null;
-                for (Entity le : event.getNPC().getBukkitEntity().getNearbyEntities(1, 1, 1))
+                for (Entity le : event.getNPC().getEntity().getNearbyEntities(1, 1, 1))
                     if (le instanceof Player) pusher = (Player) le;
                 if (pusher != null) {
                     DenizenAPI.getDenizenNPC(npc).action("push", dPlayer.mirrorBukkitPlayer(pusher));
@@ -161,10 +161,14 @@ public class PushableTrait extends Trait implements Listener {
             } // End push action
             if (!pushed && returnable) {
                 pushed = true;
-                returnLocation = npc.getBukkitEntity().getLocation().clone();
+                returnLocation = npc.getEntity().getLocation().clone();
                 Bukkit.getServer().getScheduler().scheduleSyncDelayedTask(
                         DenizenAPI.getCurrentInstance(), new Runnable() {
-                            @Override public void run() { navigateBack(); } }, delay * 20);
+                            @Override
+                            public void run() {
+                                navigateBack();
+                            }
+                        }, delay * 20);
             }
         }
     }
@@ -179,14 +183,14 @@ public class PushableTrait extends Trait implements Listener {
     // None
     //
     // -->
+
     /**
      * Fires a 'On Push Return:' action upon return after being pushed.
-     *
      */
     @EventHandler
-    public void NPCCompleteDestination (NavigationCompleteEvent event) {
+    public void NPCCompleteDestination(NavigationCompleteEvent event) {
         if (event.getNPC() == npc && pushed) {
-            EntityLiving handle = ((CraftLivingEntity) npc.getBukkitEntity()).getHandle();
+            EntityLiving handle = ((CraftLivingEntity) npc.getEntity()).getHandle();
             handle.yaw = returnLocation.getYaw();
             handle.pitch = returnLocation.getPitch();
             // !--- START NMS OBFUSCATED
@@ -201,7 +205,8 @@ public class PushableTrait extends Trait implements Listener {
     protected void navigateBack() {
         if (npc.getNavigator().isNavigating()) {
             pushed = false;
-        } else if (pushed) {
+        }
+        else if (pushed) {
             pushed = false; // Avoids NPCCompleteDestination from triggering
             npc.getNavigator().setTarget(returnLocation);
             pushed = true;

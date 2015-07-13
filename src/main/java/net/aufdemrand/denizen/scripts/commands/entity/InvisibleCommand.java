@@ -1,32 +1,22 @@
 package net.aufdemrand.denizen.scripts.commands.entity;
 
 import net.aufdemrand.denizen.BukkitScriptEntryData;
-import net.aufdemrand.denizen.objects.Element;
+import net.aufdemrand.denizen.npc.traits.InvisibleTrait;
 import net.aufdemrand.denizen.objects.dEntity;
+import net.aufdemrand.denizen.utilities.debugging.dB;
+import net.aufdemrand.denizencore.exceptions.CommandExecutionException;
+import net.aufdemrand.denizencore.exceptions.InvalidArgumentsException;
+import net.aufdemrand.denizencore.objects.Element;
+import net.aufdemrand.denizencore.objects.aH;
+import net.aufdemrand.denizencore.scripts.ScriptEntry;
+import net.aufdemrand.denizencore.scripts.commands.AbstractCommand;
 import net.citizensnpcs.api.npc.NPC;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 
-import net.aufdemrand.denizencore.exceptions.CommandExecutionException;
-import net.aufdemrand.denizencore.exceptions.InvalidArgumentsException;
-import net.aufdemrand.denizen.npc.traits.InvisibleTrait;
-import net.aufdemrand.denizen.scripts.ScriptEntry;
-import net.aufdemrand.denizen.scripts.commands.AbstractCommand;
-import net.aufdemrand.denizen.objects.aH;
-import net.aufdemrand.denizen.utilities.debugging.dB;
-
-/**
- * Makes a player or an NPC invisible.
- *
- * Note: Only works on NPCs that you have used
- * "/npc playerlist" on!
- *
- * @author aufdemrand
- *
- */
 public class InvisibleCommand extends AbstractCommand {
 
-    enum Action { TRUE, FALSE, TOGGLE }
+    enum Action {TRUE, FALSE, TOGGLE}
 
     @Override
     public void parseArgs(ScriptEntry scriptEntry) throws InvalidArgumentsException {
@@ -38,13 +28,13 @@ public class InvisibleCommand extends AbstractCommand {
 
             else if (!scriptEntry.hasObject("target")
                     && arg.matches("PLAYER")
-                    && ((BukkitScriptEntryData)scriptEntry.entryData).hasPlayer())
-                scriptEntry.addObject("target", ((BukkitScriptEntryData)scriptEntry.entryData).getPlayer().getDenizenEntity());
+                    && ((BukkitScriptEntryData) scriptEntry.entryData).hasPlayer())
+                scriptEntry.addObject("target", ((BukkitScriptEntryData) scriptEntry.entryData).getPlayer().getDenizenEntity());
 
             else if (!scriptEntry.hasObject("target")
                     && arg.matches("NPC")
-                    && ((BukkitScriptEntryData)scriptEntry.entryData).hasNPC())
-                scriptEntry.addObject("target", ((BukkitScriptEntryData)scriptEntry.entryData).getNPC().getDenizenEntity());
+                    && ((BukkitScriptEntryData) scriptEntry.entryData).hasNPC())
+                scriptEntry.addObject("target", ((BukkitScriptEntryData) scriptEntry.entryData).getNPC().getDenizenEntity());
 
             else if (!scriptEntry.hasObject("target")
                     && arg.matchesArgumentType(dEntity.class))
@@ -57,7 +47,7 @@ public class InvisibleCommand extends AbstractCommand {
         if (!scriptEntry.hasObject("state"))
             scriptEntry.addObject("state", new Element("TRUE"));
 
-        if (!scriptEntry.hasObject("target") || !((dEntity)scriptEntry.getdObject("target")).isValid())
+        if (!scriptEntry.hasObject("target") || !((dEntity) scriptEntry.getdObject("target")).isValid())
             throw new InvalidArgumentsException("Must specify a valid target!");
     }
 
@@ -70,7 +60,7 @@ public class InvisibleCommand extends AbstractCommand {
         // Report to dB
         dB.report(scriptEntry, getName(), state.debug() + target.debug());
 
-        if (target.isNPC()) {
+        if (target.isCitizensNPC()) {
             NPC npc = target.getDenizenNPC().getCitizen();
             if (!npc.hasTrait(InvisibleTrait.class))
                 npc.addTrait(InvisibleTrait.class);

@@ -1,8 +1,11 @@
 package net.aufdemrand.denizen.objects.properties.entity;
 
-import net.aufdemrand.denizen.objects.*;
-import net.aufdemrand.denizen.objects.properties.Property;
-import net.aufdemrand.denizen.tags.Attribute;
+import net.aufdemrand.denizen.objects.dEntity;
+import net.aufdemrand.denizen.objects.dItem;
+import net.aufdemrand.denizencore.objects.Mechanism;
+import net.aufdemrand.denizencore.objects.dObject;
+import net.aufdemrand.denizencore.objects.properties.Property;
+import net.aufdemrand.denizencore.tags.Attribute;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.ThrownPotion;
 import org.bukkit.inventory.ItemStack;
@@ -12,7 +15,7 @@ public class EntityPotion implements Property {
     public static boolean describes(dObject entity) {
         if (!(entity instanceof dEntity)) return false;
         // Check if the entity is a SPLASH_POTION, the EntityType alias for ThrownPotion
-        return ((dEntity) entity).getEntityType() == EntityType.SPLASH_POTION;
+        return ((dEntity) entity).getBukkitEntityType() == EntityType.SPLASH_POTION;
     }
 
     public static EntityPotion getFrom(dObject entity) {

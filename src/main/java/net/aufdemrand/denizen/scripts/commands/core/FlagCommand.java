@@ -1,15 +1,21 @@
 package net.aufdemrand.denizen.scripts.commands.core;
 
 import net.aufdemrand.denizen.BukkitScriptEntryData;
-import net.aufdemrand.denizen.utilities.DenizenAPI;
-import net.aufdemrand.denizencore.exceptions.CommandExecutionException;
-import net.aufdemrand.denizencore.exceptions.InvalidArgumentsException;
 import net.aufdemrand.denizen.flags.FlagManager;
 import net.aufdemrand.denizen.flags.FlagManager.Flag;
-import net.aufdemrand.denizen.objects.*;
-import net.aufdemrand.denizen.scripts.ScriptEntry;
-import net.aufdemrand.denizen.scripts.commands.AbstractCommand;
+import net.aufdemrand.denizen.objects.dEntity;
+import net.aufdemrand.denizen.objects.dNPC;
+import net.aufdemrand.denizen.objects.dPlayer;
+import net.aufdemrand.denizen.utilities.DenizenAPI;
 import net.aufdemrand.denizen.utilities.debugging.dB;
+import net.aufdemrand.denizencore.exceptions.CommandExecutionException;
+import net.aufdemrand.denizencore.exceptions.InvalidArgumentsException;
+import net.aufdemrand.denizencore.objects.Duration;
+import net.aufdemrand.denizencore.objects.Element;
+import net.aufdemrand.denizencore.objects.aH;
+import net.aufdemrand.denizencore.objects.dObject;
+import net.aufdemrand.denizencore.scripts.ScriptEntry;
+import net.aufdemrand.denizencore.scripts.commands.AbstractCommand;
 import org.bukkit.event.Listener;
 
 /**
@@ -18,7 +24,6 @@ import org.bukkit.event.Listener;
  *
  * @author Jeremy Schroeder
  * @version 1.0
- *
  */
 
 public class FlagCommand extends AbstractCommand implements Listener {
@@ -42,48 +47,60 @@ public class FlagCommand extends AbstractCommand implements Listener {
             else if (!scriptEntry.hasObject("flag_target")
                     && arg.matches("npc", "denizen")) {
                 specified_target = true;
-                scriptEntry.addObject("flag_target", ((BukkitScriptEntryData)scriptEntry.entryData).getNPC());
+                scriptEntry.addObject("flag_target", ((BukkitScriptEntryData) scriptEntry.entryData).getNPC());
 
-            } else if (!scriptEntry.hasObject("flag_target")
+            }
+            else if (!scriptEntry.hasObject("flag_target")
                     && arg.matches("global", "server")) {
                 specified_target = true;
                 scriptEntry.addObject("flag_target", Element.SERVER);
 
-            } else if (!scriptEntry.hasObject("flag_target")
+            }
+            else if (!scriptEntry.hasObject("flag_target")
                     && arg.matches("player")) {
                 specified_target = true;
-                scriptEntry.addObject("flag_target", ((BukkitScriptEntryData)scriptEntry.entryData).getPlayer());
+                scriptEntry.addObject("flag_target", ((BukkitScriptEntryData) scriptEntry.entryData).getPlayer());
             }
 
             // Allow a p@player or n@npc entity to specify the target to be flagged.
             // Don't check if the player/npc is valid until after the argument
-            // is being process to make sure the objects don't accidently get set
+            // is being processed to make sure the objects don't accidentally get set
             // as the name of the flag..
             else if (!scriptEntry.hasObject("flag_target")
                     && arg.startsWith("n@") && !arg.hasPrefix()) {
-                if (dNPC.valueOf(arg.getValue()) == null)
+                if (dNPC.valueOf(arg.getValue()) == null) // TODO: Optimize
                     throw new InvalidArgumentsException("Invalid NPC target.");
                 specified_target = true;
                 scriptEntry.addObject("flag_target", arg.asType(dNPC.class));
 
-            } else if (!scriptEntry.hasObject("flag_target")
+            }
+            else if (!scriptEntry.hasObject("flag_target")
                     && arg.startsWith("p@") && !arg.hasPrefix()) {
-                if (dPlayer.valueOf(arg.getValue()) == null)
+                if (dPlayer.valueOf(arg.getValue()) == null) // TODO: Optimize
                     throw new InvalidArgumentsException("Invalid Player target.");
                 specified_target = true;
                 scriptEntry.addObject("flag_target", arg.asType(dPlayer.class));
             }
+            else if (!scriptEntry.hasObject("flag_target")
+                    && !arg.hasPrefix()) {
+                if (dEntity.valueOf(arg.getValue()) == null) // TODO: Optimize
+                    throw new InvalidArgumentsException("Invalid Entity target.");
+                specified_target = true;
+                scriptEntry.addObject("flag_target", arg.asType(dEntity.class));
+            }
 
 
             // Check if setting a boolean
-            else if (arg.raw_value.split(":", 3).length == 1) {
+            else if (!scriptEntry.hasObject("flag_name") &&
+                    arg.raw_value.split(":", 3).length == 1) {
                 scriptEntry.addObject("action", FlagManager.Action.SET_BOOLEAN);
                 scriptEntry.addObject("value", Element.TRUE);
                 scriptEntry.addObject("flag_name", arg.asElement());
             }
 
             // Check for flag_name:value/action
-            else if (arg.raw_value.split(":", 3).length == 2) {
+            else if (!scriptEntry.hasObject("flag_name") &&
+                    arg.raw_value.split(":", 3).length == 2) {
 
                 String[] flagArgs = arg.raw_value.split(":", 2);
                 scriptEntry.addObject("flag_name", new Element(flagArgs[0].toUpperCase()));
@@ -112,7 +129,8 @@ public class FlagCommand extends AbstractCommand implements Listener {
             }
 
             // Check for flag_name:action:value
-            else if (arg.raw_value.split(":", 3).length == 3) {
+            else if (!scriptEntry.hasObject("flag_name") &&
+                    arg.raw_value.split(":", 3).length == 3) {
                 String[] flagArgs = arg.raw_value.split(":", 3);
                 scriptEntry.addObject("flag_name", new Element(flagArgs[0].toUpperCase()));
 
@@ -151,7 +169,7 @@ public class FlagCommand extends AbstractCommand implements Listener {
 
         // Set defaults
         if (!specified_target)
-            scriptEntry.defaultObject("flag_target", ((BukkitScriptEntryData)scriptEntry.entryData).getPlayer());
+            scriptEntry.defaultObject("flag_target", ((BukkitScriptEntryData) scriptEntry.entryData).getPlayer());
 
         // Check required arguments
         if (!scriptEntry.hasObject("action"))
@@ -178,7 +196,10 @@ public class FlagCommand extends AbstractCommand implements Listener {
         if (name.asString().contains("[")) {
             try {
                 index = Integer.valueOf(name.asString().split("\\[")[1].replace("]", ""));
-            } catch (Exception e) { index = -1; }
+            }
+            catch (Exception e) {
+                index = -1;
+            }
             name = Element.valueOf(name.asString().split("\\[")[0]);
         }
 
@@ -200,6 +221,9 @@ public class FlagCommand extends AbstractCommand implements Listener {
 
         else if (flag_target instanceof dNPC)
             flag = DenizenAPI.getCurrentInstance().flagManager().getNPCFlag(((dNPC) flag_target).getId(), name.asString());
+
+        else if (flag_target instanceof dEntity)
+            flag = DenizenAPI.getCurrentInstance().flagManager().getEntityFlag((dEntity) flag_target, name.asString());
 
         else throw new CommandExecutionException("Could not fetch a flag for this entity: " + flag_target.debug());
 

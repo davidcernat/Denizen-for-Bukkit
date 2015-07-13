@@ -1,11 +1,11 @@
 package net.aufdemrand.denizen.objects.properties.item;
 
-import net.aufdemrand.denizen.objects.Element;
-import net.aufdemrand.denizen.objects.Mechanism;
 import net.aufdemrand.denizen.objects.dItem;
-import net.aufdemrand.denizen.objects.dObject;
-import net.aufdemrand.denizen.objects.properties.Property;
-import net.aufdemrand.denizen.tags.Attribute;
+import net.aufdemrand.denizencore.objects.Element;
+import net.aufdemrand.denizencore.objects.Mechanism;
+import net.aufdemrand.denizencore.objects.dObject;
+import net.aufdemrand.denizencore.objects.properties.Property;
+import net.aufdemrand.denizencore.tags.Attribute;
 import org.bukkit.Material;
 
 public class ItemMap implements Property {
@@ -17,7 +17,7 @@ public class ItemMap implements Property {
 
     public static ItemMap getFrom(dObject _item) {
         if (!describes(_item)) return null;
-        else return new ItemMap((dItem)_item);
+        else return new ItemMap((dItem) _item);
     }
 
 
@@ -73,7 +73,7 @@ public class ItemMap implements Property {
         // -->
 
         if (mechanism.matches("map")) {
-            item.getItemStack().setDurability((short)(mechanism.getValue().asInt()));
+            item.getItemStack().setDurability((short) (mechanism.getValue().asInt()));
         }
     }
 }

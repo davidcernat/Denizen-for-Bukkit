@@ -1,10 +1,13 @@
 package net.aufdemrand.denizen.utilities;
 
-import net.aufdemrand.denizen.objects.*;
+import net.aufdemrand.denizen.objects.dEntity;
+import net.aufdemrand.denizen.objects.dNPC;
+import net.aufdemrand.denizen.objects.dPlayer;
 import net.aufdemrand.denizen.scripts.containers.core.CommandScriptContainer;
 import net.aufdemrand.denizen.tags.BukkitTagContext;
-import net.aufdemrand.denizen.tags.TagManager;
 import net.aufdemrand.denizen.utilities.depends.Depends;
+import net.aufdemrand.denizencore.objects.*;
+import net.aufdemrand.denizencore.tags.TagManager;
 import net.citizensnpcs.api.CitizensAPI;
 import net.citizensnpcs.api.npc.NPC;
 import org.bukkit.ChatColor;
@@ -12,7 +15,10 @@ import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
-import java.util.*;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 public class DenizenCommand extends Command {
 
@@ -38,7 +44,7 @@ public class DenizenCommand extends Command {
         dNPC npc = null;
         if (commandSender instanceof Player) {
             Player pl = (Player) commandSender;
-            if (Depends.citizens == null || !CitizensAPI.getNPCRegistry().isNPC(pl))
+            if (!dEntity.isNPC(pl))
                 player = dPlayer.mirrorBukkitPlayer(pl);
             context.put("server", Element.FALSE);
         }
@@ -58,12 +64,13 @@ public class DenizenCommand extends Command {
         if (permissionMessage == null) {
             target.sendMessage(ChatColor.RED + "I'm sorry, but you do not have permission to perform this command. "
                     + "Please contact the server administrators if you believe that this is in error.");
-        } else if (permissionMessage.length() != 0) {
+        }
+        else if (permissionMessage.length() != 0) {
             dPlayer player = null;
             dNPC npc = null;
             if (target instanceof Player) {
                 Player pl = (Player) target;
-                if (Depends.citizens != null && CitizensAPI.getNPCRegistry().isNPC(pl))
+                if (dEntity.isCitizensNPC(pl))
                     npc = dNPC.fromEntity(pl);
                 else
                     player = dPlayer.mirrorBukkitPlayer(pl);
@@ -74,9 +81,8 @@ public class DenizenCommand extends Command {
                     npc = dNPC.mirrorCitizensNPC(citizen);
             }
             // <permission> is built into Bukkit... let's keep it here
-            // TODO: script arg?
             for (String line : TagManager.tag(permissionMessage.replace("<permission>", getPermission()),
-                    new BukkitTagContext(player, npc, false, null, false, null)).split("\n")) {
+                    new BukkitTagContext(player, npc, false, null, false, new dScript(script))).split("\n")) {
                 target.sendMessage(line);
             }
         }
@@ -86,6 +92,7 @@ public class DenizenCommand extends Command {
 
     @Override
     public boolean execute(CommandSender commandSender, String commandLabel, String[] arguments) {
+        if (!testPermission(commandSender)) return true;
         Map<String, dObject> context = new HashMap<String, dObject>();
         String raw_args = "";
         if (arguments.length > 0) {
@@ -103,7 +110,7 @@ public class DenizenCommand extends Command {
         dNPC npc = null;
         if (commandSender instanceof Player) {
             Player pl = (Player) commandSender;
-            if (Depends.citizens != null && CitizensAPI.getNPCRegistry().isNPC(pl))
+            if (dEntity.isCitizensNPC(pl))
                 npc = dNPC.fromEntity(pl);
             else
                 player = dPlayer.mirrorBukkitPlayer(pl);
@@ -146,7 +153,7 @@ public class DenizenCommand extends Command {
         dNPC npc = null;
         if (commandSender instanceof Player) {
             Player pl = (Player) commandSender;
-            if (Depends.citizens != null && CitizensAPI.getNPCRegistry().isNPC(pl))
+            if (dEntity.isCitizensNPC(pl))
                 npc = dNPC.fromEntity(pl);
             else
                 player = dPlayer.mirrorBukkitPlayer(pl);

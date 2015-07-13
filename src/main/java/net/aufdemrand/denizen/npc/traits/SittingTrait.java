@@ -3,20 +3,23 @@ package net.aufdemrand.denizen.npc.traits;
 import net.aufdemrand.denizen.utilities.DenizenAPI;
 import net.aufdemrand.denizen.utilities.Utilities;
 import net.aufdemrand.denizen.utilities.entity.CraftFakeArrow;
+import net.aufdemrand.denizencore.objects.Mechanism;
 import net.citizensnpcs.api.persistence.Persist;
 import net.citizensnpcs.api.trait.Trait;
-
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
+import org.bukkit.entity.LivingEntity;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.player.PlayerTeleportEvent;
 import org.bukkit.event.vehicle.VehicleExitEvent;
 
-public class SittingTrait extends Trait implements Listener  {
+import java.util.ArrayList;
+
+public class SittingTrait extends Trait implements Listener {
 
     @Persist("sitting")
     private boolean sitting = false;
@@ -27,7 +30,7 @@ public class SittingTrait extends Trait implements Listener  {
     @Override
     public void run() {
         if (!npc.isSpawned() || chairLocation == null) return;
-        if (!Utilities.checkLocation(npc.getBukkitEntity(), chairLocation, 1)) {
+        if (!Utilities.checkLocation((LivingEntity) npc.getEntity(), chairLocation, 1)) {
             stand();
         }
     }
@@ -54,22 +57,23 @@ public class SittingTrait extends Trait implements Listener  {
     // None
     //
     // -->
+
     /**
      * Makes the NPC sit
      */
     public void sit() {
         DenizenAPI.getDenizenNPC(npc).action("sit", null);
 
-        if (npc.getBukkitEntity().getType() != EntityType.PLAYER) {
+        if (npc.getEntity().getType() != EntityType.PLAYER) {
             return;
         }
 
         sitInternal();
-        chairLocation = npc.getBukkitEntity().getLocation().clone();
+        chairLocation = npc.getEntity().getLocation().clone();
     }
 
     private void sitInternal() {
-        CraftFakeArrow.createArrow(npc.getEntity().getLocation()).setPassenger(npc.getEntity());
+        CraftFakeArrow.createArrow(npc.getEntity().getLocation(), new ArrayList<Mechanism>()).setPassenger(npc.getEntity());
         //PlayerAnimation.SIT.play((Player)npc.getEntity());
         //eh.getDataWatcher().watch(0, (byte) 0x04);
         sitting = true;
@@ -121,6 +125,7 @@ public class SittingTrait extends Trait implements Listener  {
     // None
     //
     // -->
+
     /**
      * Makes the NPC stand
      */
@@ -156,7 +161,6 @@ public class SittingTrait extends Trait implements Listener  {
     /**
      * If someone tries to break the poor
      * NPC's chair, we need to stop them!
-     *
      */
     @EventHandler(ignoreCancelled = true)
     public void onBlockBreak(BlockBreakEvent event) {
@@ -168,6 +172,7 @@ public class SittingTrait extends Trait implements Listener  {
 
     @EventHandler
     public void arrowDismount(final VehicleExitEvent event) {
+        // TODO: Move elsewhere so not multi-firing?
         if (event.getVehicle() instanceof CraftFakeArrow) {
             Bukkit.getScheduler().runTaskLater(DenizenAPI.getCurrentInstance(), new Runnable() {
                 @Override

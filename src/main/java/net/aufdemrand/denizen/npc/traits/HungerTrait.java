@@ -32,18 +32,18 @@ public class HungerTrait extends Trait implements Listener {
     /**
      * Watches the NPCs movement to calculate hunger loss. Loses 0.01 hunger points
      * per block moved, unless a modifier is used.
-     *
      */
-    @Override public void run() {
+    @Override
+    public void run() {
         if (!listening) return;
         // We'll only actually calculate hunger-loss once per second
         count++;
         if (count >= 20) {
             // Reset counter
             count = 0;
-            double td = getDistance(npc.getBukkitEntity().getLocation());
+            double td = getDistance(npc.getEntity().getLocation());
             if (td > 0) {
-                location = npc.getBukkitEntity().getLocation().clone();
+                location = npc.getEntity().getLocation().clone();
                 currenthunger = currenthunger - (td * 0.01 * multiplier);
             }
         }
@@ -59,17 +59,18 @@ public class HungerTrait extends Trait implements Listener {
     // None
     //
     // -->
+
     /**
      * Listens for the NPC to move so hunger-loss can be calculated.
      * Cuts down on processing since loss is only calculated when moving.
      * Also checks for exhaustion, if enabled. If a NPC is exhausted, that is,
      * if currenthunger >= maxhunger, the NPC cannot move and a
      * NPCExhaustedEvent and 'On Exhausted:' action will fire.
-     *
      */
     @EventHandler
     public void onMove(NavigationBeginEvent event) {
 
+        // TODO: Check if NPC == this NPC?
         if (allowexhaustion) {
             if (isStarving()) {
                 // Create NPCExhaustedEvent, give chance for outside plugins to cancel.
@@ -87,13 +88,12 @@ public class HungerTrait extends Trait implements Listener {
             }
         }
 
-        location = npc.getBukkitEntity().getLocation();
+        location = npc.getEntity().getLocation();
         listening = true;
     }
 
     /**
      * Stops the listening process for hunger-loss since the NPC is no longer moving.
-     *
      */
     @EventHandler
     public void onCancel(NavigationCancelEvent event) {
@@ -102,7 +102,6 @@ public class HungerTrait extends Trait implements Listener {
 
     /**
      * Stops the listening process for hunger-loss since the NPC is no longer moving.
-     *
      */
     @EventHandler
     public void onCancel(NavigationCompleteEvent event) {
@@ -117,7 +116,6 @@ public class HungerTrait extends Trait implements Listener {
      * Gets the NPCs current hunger level. 0.00 = no hunger, NPC is satiated.
      *
      * @return current hunger level
-     *
      */
     public double getHunger() {
         return currenthunger;
@@ -128,7 +126,6 @@ public class HungerTrait extends Trait implements Listener {
      * or lower to require more or less 'feeding'.
      *
      * @return max hunger level
-     *
      */
     public double getMaxHunger() {
         return maxhunger;
@@ -149,7 +146,6 @@ public class HungerTrait extends Trait implements Listener {
      * reduces hunger quicker.
      *
      * @return current hunger multiplier
-     *
      */
     public int getHungerMultiplier() {
         return multiplier;
@@ -160,7 +156,6 @@ public class HungerTrait extends Trait implements Listener {
      * reduces hunger quicker. Lower value, in turn, makes hunger loss slower.
      *
      * @param multiplier new multiplier
-     *
      */
     public void setHungerMultiplier(int multiplier) {
         this.multiplier = multiplier;
@@ -170,7 +165,6 @@ public class HungerTrait extends Trait implements Listener {
      * Sets the current hunger level.
      *
      * @param hunger new hunger level
-     *
      */
     public void setHunger(double hunger) {
         if (currenthunger > maxhunger) currenthunger = maxhunger;
@@ -181,7 +175,6 @@ public class HungerTrait extends Trait implements Listener {
      * "Feeds" the NPC. The value used will reduce the total currenthunger value.
      *
      * @param hunger amount of hunger-points to reduce currenthunger by
-     *
      */
     public void feed(double hunger) {
         currenthunger = currenthunger - hunger;
@@ -202,7 +195,6 @@ public class HungerTrait extends Trait implements Listener {
      * Checks to see if the NPC is starving. If currenthunger >= maxhunger, the NPC is starving.
      *
      * @return true if NPC is starving
-     *
      */
     public boolean isStarving() {
         return currenthunger >= maxhunger;
@@ -213,7 +205,6 @@ public class HungerTrait extends Trait implements Listener {
      * the NPC is hungry. A NPC that is starving is also hungry.
      *
      * @return true if the NPC is hungry
-     *
      */
     public boolean isHungry() {
         return currenthunger > (maxhunger / 10);
@@ -221,9 +212,9 @@ public class HungerTrait extends Trait implements Listener {
 
     // Used internally
     private double getDistance(Location location) {
-        if (!npc.getBukkitEntity().getWorld().equals(location.getWorld())) {
+        if (!npc.getEntity().getWorld().equals(location.getWorld())) {
             // World change, update location
-            this.location = npc.getBukkitEntity().getLocation();
+            this.location = npc.getEntity().getLocation();
             return 0;
         }
         return location.distance(this.location);

@@ -1,12 +1,18 @@
 package net.aufdemrand.denizen.objects.properties.entity;
 
-import net.aufdemrand.denizen.objects.*;
-import net.aufdemrand.denizen.objects.properties.Property;
-import net.aufdemrand.denizen.tags.Attribute;
+import net.aufdemrand.denizen.objects.dEntity;
 import net.aufdemrand.denizen.utilities.debugging.dB;
+import net.aufdemrand.denizencore.objects.Element;
+import net.aufdemrand.denizencore.objects.Mechanism;
+import net.aufdemrand.denizencore.objects.dList;
+import net.aufdemrand.denizencore.objects.dObject;
+import net.aufdemrand.denizencore.objects.properties.Property;
+import net.aufdemrand.denizencore.tags.Attribute;
 import net.citizensnpcs.api.npc.NPC;
 import net.citizensnpcs.trait.Age;
-import org.bukkit.entity.*;
+import org.bukkit.entity.Ageable;
+import org.bukkit.entity.EntityType;
+import org.bukkit.entity.Zombie;
 
 public class EntityAge implements Property {
 
@@ -43,7 +49,7 @@ public class EntityAge implements Property {
     }
 
     public void setBaby(boolean bool) {
-        if (ageable.isNPC()) {
+        if (ageable.isCitizensNPC()) {
             NPC ageable_npc = ageable.getDenizenNPC().getCitizen();
             if (!ageable_npc.hasTrait(Age.class))
                 ageable_npc.addTrait(Age.class);
@@ -62,7 +68,7 @@ public class EntityAge implements Property {
     }
 
     public void setAge(int val) {
-        if (ageable.isNPC()) {
+        if (ageable.isCitizensNPC()) {
             NPC ageable_npc = ageable.getDenizenNPC().getCitizen();
             ageable_npc.getTrait(Age.class).setAge(val);
         }
@@ -97,12 +103,7 @@ public class EntityAge implements Property {
 
     @Override
     public String getPropertyString() {
-        if (isBaby())
-            return "baby" + (getLock() ? "|locked": "");
-        else if (ageable.getBukkitEntity().getType() != EntityType.ZOMBIE && getLock())
-            return "adult|locked";
-        else
-            return null;
+        return getAge() + (getLock() ? "|locked" : "");
     }
 
     @Override

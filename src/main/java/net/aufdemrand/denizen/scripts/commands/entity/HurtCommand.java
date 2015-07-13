@@ -1,25 +1,19 @@
 package net.aufdemrand.denizen.scripts.commands.entity;
 
+import net.aufdemrand.denizen.BukkitScriptEntryData;
+import net.aufdemrand.denizen.objects.dEntity;
+import net.aufdemrand.denizen.utilities.debugging.dB;
+import net.aufdemrand.denizencore.exceptions.CommandExecutionException;
+import net.aufdemrand.denizencore.exceptions.InvalidArgumentsException;
+import net.aufdemrand.denizencore.objects.Element;
+import net.aufdemrand.denizencore.objects.aH;
+import net.aufdemrand.denizencore.objects.dList;
+import net.aufdemrand.denizencore.scripts.ScriptEntry;
+import net.aufdemrand.denizencore.scripts.commands.AbstractCommand;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-
-import net.aufdemrand.denizen.BukkitScriptEntryData;
-import net.aufdemrand.denizencore.exceptions.CommandExecutionException;
-import net.aufdemrand.denizencore.exceptions.InvalidArgumentsException;
-import net.aufdemrand.denizen.objects.Element;
-import net.aufdemrand.denizen.objects.aH;
-import net.aufdemrand.denizen.objects.dEntity;
-import net.aufdemrand.denizen.objects.dList;
-import net.aufdemrand.denizen.scripts.ScriptEntry;
-import net.aufdemrand.denizen.scripts.commands.AbstractCommand;
-import net.aufdemrand.denizen.utilities.debugging.dB;
-
-/**
- * Hurts an entity.
- *
- * @author Jeremy Schroeder, Mason Adkins, Morphan1, mcmonkey
- */
 
 public class HurtCommand extends AbstractCommand {
 
@@ -63,10 +57,10 @@ public class HurtCommand extends AbstractCommand {
 
         if (!specified_targets) {
             List<dEntity> entities = new ArrayList<dEntity>();
-            if (((BukkitScriptEntryData)scriptEntry.entryData).getPlayer() != null)
-                entities.add(((BukkitScriptEntryData)scriptEntry.entryData).getPlayer().getDenizenEntity());
-            else if (((BukkitScriptEntryData)scriptEntry.entryData).getNPC() != null)
-                entities.add(((BukkitScriptEntryData)scriptEntry.entryData).getNPC().getDenizenEntity());
+            if (((BukkitScriptEntryData) scriptEntry.entryData).getPlayer() != null)
+                entities.add(((BukkitScriptEntryData) scriptEntry.entryData).getPlayer().getDenizenEntity());
+            else if (((BukkitScriptEntryData) scriptEntry.entryData).getNPC() != null)
+                entities.add(((BukkitScriptEntryData) scriptEntry.entryData).getNPC().getDenizenEntity());
             else
                 throw new InvalidArgumentsException("No valid target entities found.");
             scriptEntry.addObject("entities", entities);
@@ -83,8 +77,8 @@ public class HurtCommand extends AbstractCommand {
         Element amountElement = scriptEntry.getElement("amount");
 
         dB.report(scriptEntry, getName(), amountElement.debug()
-                                          + aH.debugList("entities", entities)
-                                          + (source == null ? "" : source.debug()));
+                + aH.debugList("entities", entities)
+                + (source == null ? "" : source.debug()));
 
         double amount = amountElement.asDouble();
         for (dEntity entity : entities) {
